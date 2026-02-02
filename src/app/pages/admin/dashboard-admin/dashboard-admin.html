@@ -1,0 +1,51 @@
+<div class="app-container admin-container">
+  <!-- Sidebar de navegação -->
+  <app-admin-nav></app-admin-nav>
+
+  <div class="main-content admin-main-content">
+    <!-- Header -->
+    <app-header></app-header>
+
+    <!-- Área de conteúdo principal -->
+    <div class="content-area admin-content-area">
+      @if (authService.isAdmin()) {
+        <!-- ÁREA PARA RENDERIZAR ROTAS FILHAS -->
+        <router-outlet></router-outlet>
+
+        <!-- Mostrar tabs apenas nas rotas principais -->
+        @if (isMainRoute()) {
+          <div class="tabs-fallback" *ngIf="router.url === '/admin'">
+            <div class="welcome-message">
+              <mat-icon>dashboard</mat-icon>
+              <h2>Painel Administrativo</h2>
+              <p>Selecione uma opção no menu lateral para começar</p>
+            </div>
+          </div>
+        }
+      } @else if (!authService.isAdmin() && authService.isLogged()) {
+        <!-- Mensagem se não for admin -->
+        <div class="access-denied">
+          <mat-icon class="denied-icon">block</mat-icon>
+          <h2> Acesso Negado</h2>
+          <p>Você não possui permissões de administrador para acessar esta área.</p>
+          <p>Role atual: <strong>{{ currentUserRole }}</strong></p>
+          <button class="btn btn-primary" (click)="navigateToDashboard()">
+            <mat-icon>arrow_back</mat-icon>
+            Voltar para Dashboard
+          </button>
+        </div>
+      } @else {
+        <!-- Mensagem se não estiver logado -->
+        <div class="access-denied">
+          <mat-icon class="login-icon">lock</mat-icon>
+          <h2> Login Necessário</h2>
+          <p>Você precisa estar logado para acessar esta área.</p>
+          <button class="btn btn-primary" (click)="authService.logout()">
+            <mat-icon>login</mat-icon>
+            Ir para Login
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

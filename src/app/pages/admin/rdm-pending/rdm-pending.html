@@ -1,0 +1,287 @@
+<!-- src\app\pages\admin\rdm-pending\rdm-pending.html -->
+<div class="rdm-pending-container container-content-dashboard">
+  <div class="section-header">
+    <h2>RDM Pendentes</h2>
+    <p>Gerencie as solicitações de RDM pendentes de aprovação</p>
+  </div>
+
+  <div class="container-btn-refresh">
+    <button class="btn btn-secondary" (click)="refreshData()" [disabled]="isLoading" title="Atualizar lista">
+      Atualizar
+    </button>
+  </div>
+
+  @if (errorMessage) {
+  <div class="alert alert-warning">
+    {{ errorMessage }}
+  </div>
+  }
+
+  <div class="filters-bar">
+    <div class="search-bar">
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchRDM()"
+        placeholder="Buscar por ticket, solicitante, título ou status..." class="search-input">
+    </div>
+
+    <div class="page-info">
+      Mostrando {{ filteredRDM.length }} de {{ totalItems }} RDM(s)
+    </div>
+  </div>
+
+  @if (isLoading) {
+  <div class="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Carregando RDM pendentes...</p>
+  </div>
+  } @else {
+  <div class="table-container">
+    <table class="rdm-pending-table">
+      <thead>
+        <tr>
+          <th>Ticket</th>
+          <th>Solicitante</th>
+          <th>Título</th>
+          <th>Data</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (rdm of filteredRDM; track rdm.ticket) {
+        <tr>
+          <td class="ticket-number">
+            <span class="ticket-badge">
+              {{ rdm.ticket }}
+            </span>
+          </td>
+          <td>
+            <div class="requester">
+              {{ rdm.name }}
+            </div>
+          </td>
+          <td class="rdm-title">{{ rdm.title }}</td>
+          <td>
+            <div class="date-cell">
+    {{ formatDateLikeList(rdm.date) }}
+            </div>
+          </td>
+          <td>
+            <span class="status-badge" [class]="getStatusClass(rdm.status)">
+              {{ rdm.status || 'Pendente' }}
+            </span>
+          </td>
+          <td class="actions">
+            <div class="action-buttons">
+              <button class="btn-sm btn-view" (click)="viewFullRDMDetails(rdm.ticket)" title="Ver detalhes completos">
+                <span class="btn-text">Ver</span>
+              </button>
+              <button class="btn-sm btn-approve" (click)="approveRDM(rdm)" title="Aprovar RDM">
+                <span class="btn-text">Aprovar</span>
+              </button>
+              <button class="btn-sm btn-reject" (click)="rejectRDM(rdm)" title="Reprovar RDM">
+                <span class="btn-text">Reprovar</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="6" class="empty-message">
+            Nenhuma RDM pendente encontrada!
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (totalPages > 1) {
+  <div class="pagination">
+    <button class="btn btn-pagination" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)"
+      title="Página anterior">
+      ←
+    </button>
+
+    @for (page of pages; track page) {
+    <button class="btn btn-pagination" [class.active]="currentPage === page" (click)="changePage(page)"
+      [title]="'Ir para página ' + page">
+      {{ page }}
+    </button>
+    }
+
+    <button class="btn btn-pagination" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)"
+      title="Próxima página">
+      →
+    </button>
+  </div>
+  }
+  }
+
+  <!-- Modal de Aprovação -->
+  <app-modal [title]="'Confirmar Aprovação'" [visible]="showApproveModal"
+    [buttonText]="isProcessing ? 'Processando...' : 'Cancelar'" [showFooter]="true" size="medium"
+    (closed)="closeModal()">
+
+    <div class="modal-approve-content">
+      @if (selectedRDM) {
+      <div class="rdm-info">
+        <div class="info-header">
+          <h3>Informações da RDM</h3>
+        </div>
+
+        <div class="info-grid">
+          <!-- TICKET -->
+          <div class="info-item">
+            <div>
+              <label>Ticket:</label>
+              <strong>{{ selectedRDM.ticket }}</strong>
+            </div>
+          </div>
+
+          <!-- SOLICITANTE -->
+          <div class="info-item">
+            <div>
+              <label>Solicitante:</label>
+              <strong>{{ selectedRDM.name }}</strong>
+            </div>
+          </div>
+
+          <!-- TÍTULO -->
+          <div class="info-item">
+            <div>
+              <label>Título:</label>
+              <strong>{{ selectedRDM.title }}</strong>
+            </div>
+          </div>
+
+          <!-- DATA -->
+          <div class="info-item">
+            <div>
+              <label>Data:</label>
+              <strong>{{ formatDateLikeList(selectedRDM.date) }}</strong>
+            </div>
+          </div>
+
+          <!-- STATUS -->
+          <div class="info-item">
+            <div>
+              <label>Status:</label>
+              <strong>{{ selectedRDM.status || 'Pendente' }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="confirmation-message">
+        <p>Deseja realmente <strong>aprovar</strong> esta RDM?</p>
+        <small class="text-muted">Esta ação não pode ser desfeita.</small>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="closeModal()" [disabled]="isProcessing">
+          Cancelar
+        </button>
+        <button class="btn btn-success" (click)="confirmApprove()" [disabled]="isProcessing">
+          @if (isProcessing) {
+          Processando...
+          } @else {
+          Confirmar Aprovação
+          }
+        </button>
+      </div>
+      }
+    </div>
+  </app-modal>
+
+  <!-- Modal de Rejeição -->
+  <app-modal [title]="'Confirmar Rejeição'" [visible]="showRejectModal"
+    [buttonText]="isProcessing ? 'Processando...' : 'Cancelar'" [showFooter]="false" size="medium"
+    (closed)="closeModal()">
+
+    <div class="modal-reject-content">
+      @if (selectedRDM) {
+      <div class="rdm-info">
+        <div class="info-header">
+          <h3>Informações da RDM</h3>
+        </div>
+
+        <div class="info-grid">
+          <!-- TICKET -->
+          <div class="info-item">
+            <div>
+              <label>Ticket:</label>
+              <strong>{{ selectedRDM.ticket }}</strong>
+            </div>
+          </div>
+
+          <!-- SOLICITANTE -->
+          <div class="info-item">
+            <div>
+              <label>Solicitante:</label>
+              <strong>{{ selectedRDM.name }}</strong>
+            </div>
+          </div>
+
+          <!-- TÍTULO -->
+          <div class="info-item">
+            <div>
+              <label>Título:</label>
+              <strong>{{ selectedRDM.title }}</strong>
+            </div>
+          </div>
+
+          <!-- DATA -->
+          <div class="info-item">
+            <div>
+              <label>Data:</label>
+              <strong>{{ formatDateLikeList(selectedRDM.date) }}</strong>
+            </div>
+          </div>
+
+          <!-- STATUS -->
+          <div class="info-item">
+            <div>
+              <label>Status:</label>
+              <strong>{{ selectedRDM.status || 'Pendente' }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rejection-form">
+        <div class="form-header">
+          <h4>Motivo da Rejeição</h4>
+        </div>
+
+        <p class="form-description">
+          Informe o motivo da rejeição para que o solicitante possa entender e corrigir os problemas:
+        </p>
+
+        <div class="form-group">
+          <textarea [(ngModel)]="rejectionReason" placeholder="Descreva o motivo da rejeição..." rows="4"
+            class="rejection-textarea" [disabled]="isProcessing"></textarea>
+
+          @if (!rejectionReason.trim() && !isProcessing) {
+          <div class="form-hint">
+            Este campo é obrigatório para rejeitar a RDM.
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" (click)="closeModal()" [disabled]="isProcessing">
+          Cancelar
+        </button>
+        <button class="btn btn-danger" (click)="confirmReject()" [disabled]="!rejectionReason.trim() || isProcessing">
+          @if (isProcessing) {
+          Processando...
+          } @else {
+          Confirmar Rejeição
+          }
+        </button>
+      </div>
+      }
+    </div>
+  </app-modal>
+</div>

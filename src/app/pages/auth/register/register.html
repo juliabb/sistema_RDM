@@ -1,0 +1,146 @@
+<!-- register.html -->
+<form [formGroup]="registerForm" (ngSubmit)="onRegisterSubmit()" class="auth-form">
+  <h2>Criar Conta</h2>
+
+  @if (errorMessage) {
+    <div class="error-message">{{ errorMessage }}</div>
+  }
+  @if (successMessage) {
+    <div class="success-message">{{ successMessage }}</div>
+  }
+
+  <div class="row">
+    <div class="input-group half">
+      <label for="nome" class="input-label">Nome</label>
+      <input type="text" id="nome" placeholder="Digite seu nome" formControlName="nome"
+        [class.error]="hasError('nome', 'required') || hasError('nome', 'minlength')" />
+      @if (hasError('nome', 'required')) {
+        <div class="field-error">Nome é obrigatório</div>
+      }
+      @if (hasError('nome', 'minlength')) {
+        <div class="field-error">Nome deve ter pelo menos 2 caracteres</div>
+      }
+    </div>
+
+    <div class="input-group half">
+      <label for="sobrenome" class="input-label">Sobrenome</label>
+      <input type="text" id="sobrenome" placeholder="Digite seu sobrenome" formControlName="sobrenome"
+        [class.error]="hasError('sobrenome', 'required') || hasError('sobrenome', 'minlength')" />
+      @if (hasError('sobrenome', 'required')) {
+        <div class="field-error">Sobrenome é obrigatório</div>
+      }
+      @if (hasError('sobrenome', 'minlength')) {
+        <div class="field-error">Sobrenome deve ter pelo menos 2 caracteres</div>
+      }
+    </div>
+  </div>
+
+  <div class="input-group">
+    <label for="email" class="input-label">Email</label>
+    <input type="email" id="email" placeholder="exemplo@empresa.com" formControlName="email"
+      [class.error]="hasError('email', 'required') || hasError('email', 'email')" />
+    @if (hasError('email', 'required')) {
+      <div class="field-error">Email é obrigatório</div>
+    }
+    @if (hasError('email', 'email')) {
+      <div class="field-error">Por favor, insira um email válido</div>
+    }
+  </div>
+
+  <div class="input-group">
+    <label for="confirmarEmail" class="input-label">Confirmar Email</label>
+    <input type="email" id="confirmarEmail" placeholder="Digite o email novamente" formControlName="confirmarEmail"
+      [class.error]="hasError('confirmarEmail', 'required') || hasError('confirmarEmail', 'email') || hasEmailMismatch()" />
+    @if (hasError('confirmarEmail', 'required')) {
+      <div class="field-error">Confirmação de email é obrigatória</div>
+    }
+    @if (hasEmailMismatch()) {
+      <div class="field-error">Os emails não coincidem</div>
+    }
+  </div>
+
+  <div class="input-group">
+    <label for="departamento" class="input-label">Departamento</label>
+    <input type="text" id="departamento" placeholder="Digite seu departamento" formControlName="departamento"
+      [class.error]="hasError('departamento', 'required') || hasError('departamento', 'minlength')" />
+    @if (hasError('departamento', 'required')) {
+      <div class="field-error">Departamento é obrigatório</div>
+    }
+    @if (hasError('departamento', 'minlength')) {
+      <div class="field-error">Departamento deve ter pelo menos 2 caracteres</div>
+    }
+  </div>
+
+  <div class="input-group">
+    <label for="password" class="input-label">
+      Senha <span class="required">*</span>
+      <span class="hint">(mínimo 8 caracteres)</span>
+    </label>
+    <input type="password" id="password" placeholder="Crie uma senha segura" formControlName="password"
+      [class.error]="hasError('password', 'required') || hasError('password', 'minlength') || isPasswordWeak()" />
+    @if (hasError('password', 'required')) {
+      <div class="field-error">Senha é obrigatória</div>
+    }
+    @if (hasError('password', 'minlength')) {
+      <div class="field-error">Senha deve ter pelo menos 8 caracteres</div>
+    }
+
+    @if (isPasswordWeak() && registerForm.get('password')?.touched) {
+      <div class="password-strength">
+        <div class="strength-requirement" [class.valid]="hasUpperCase()">✓ Letra maiúscula</div>
+        <div class="strength-requirement" [class.valid]="hasLowerCase()">✓ Letra minúscula</div>
+        <div class="strength-requirement" [class.valid]="hasNumbers()">✓ Número</div>
+        <div class="strength-requirement" [class.valid]="hasSpecialChar()">✓ Caractere especial</div>
+        <div class="strength-requirement" [class.valid]="isValidLength()">✓ Mínimo 8 caracteres</div>
+      </div>
+    }
+  </div>
+
+  <div class="input-group">
+    <label for="confirmarPassword" class="input-label">Confirmar Senha</label>
+    <input type="password" id="confirmarPassword" placeholder="Digite a senha novamente"
+      formControlName="confirmarPassword"
+      [class.error]="hasError('confirmarPassword', 'required') || hasPasswordMismatch()" />
+    @if (hasError('confirmarPassword', 'required')) {
+      <div class="field-error">Confirmação de senha é obrigatória</div>
+    }
+    @if (hasPasswordMismatch()) {
+      <div class="field-error">As senhas não coincidem</div>
+    }
+  </div>
+
+  <div class="button-group">
+    <button type="submit" class="btn-primary btn-register" [disabled]="isLoading || registerForm.invalid">
+      @if (!isLoading) {
+        Criar conta
+      } @else {
+        <span class="spinner"></span> Carregando...
+      }
+    </button>
+
+    <button type="button" class="btn-secondary btn-register" (click)="toggleMode.emit()" [disabled]="isLoading">
+      Voltar para login
+    </button>
+  </div>
+</form>
+
+<!-- MODAL DE SUCESSO -->
+@if (showApprovalModal) {
+  <app-modal
+    [visible]="showApprovalModal"
+    title="Cadastro Realizado com Sucesso!"
+    buttonText="Entendido"
+    [size]="'small'"
+    [allowScroll]="false"
+    [showCloseButton]="false"
+    [closeOnClickOutside]="false"
+    (closed)="closeModal()">
+
+    <div class="modal-success-content">
+      <i class="fas fa-check-circle modal-success-icon"></i>
+      <p class="modal-success-message">Sua conta foi criada e está em análise.</p>
+      <p class="modal-success-message">Aguarde a aprovação do administrador.</p>
+      <p class="modal-success-message">Você receberá um email quando ela for ativada.</p>
+    </div>
+  </app-modal>
+}

@@ -1,0 +1,29 @@
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Solicitante</th>
+        <th>Email</th>
+        <th>Situação</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (approval of approvals; track approval.requester) {
+      <tr>
+        <td>{{ approval.requester }}</td>
+        <td>{{ approval.email || approval.title }}</td>
+        <td>{{ approval.status || 'Pendente' }}</td>
+        <td>
+          <button class="btn btn-approve" (click)="approveRequest(approval)" aria-label="Aprovar solicitação">
+            Aceitar <i class="fas fa-check" aria-hidden="true"></i>
+          </button>
+          <button class="btn btn-reject" (click)="rejectRequest(approval)" aria-label="Rejeitar solicitação">
+            Rejeitar <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+        </td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>

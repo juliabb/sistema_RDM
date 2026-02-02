@@ -1,0 +1,55 @@
+.table-container {
+  background-color: var(--white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: var(--spacing-lg);
+  text-align: left;
+  border-bottom: 1px solid var(--gray-300);
+}
+
+th {
+  background-color: var(--gray-50);
+  font-weight: 600;
+}
+
+tbody tr:hover {
+  background-color: var(--gray-50);
+}
+
+.btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: var(--spacing-sm);
+  transition: background-color 0.3s;
+}
+
+.btn-approve {
+  background-color: var(--success-color);
+  color: var(--white);
+}
+
+.btn-approve:hover {
+  background-color: var(--success-dark);
+}
+
+.btn-reject {
+  background-color: var(--error-color);
+  color: var(--white);
+}
+
+.btn-reject:hover {
+  background-color: var(--error-dark);
+}

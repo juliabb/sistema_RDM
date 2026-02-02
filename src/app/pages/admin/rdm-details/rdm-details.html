@@ -1,0 +1,711 @@
+<!-- pages/admin/rdm-details/rdm-details.html -->
+<div class="rdm-details-container" [class.admin-view]="isAdminView" [class.user-view]="!isAdminView">
+  <!-- Header com ações condicionais -->
+  <div class="document-header">
+    <div class="header-actions">
+      <!-- Botão de voltar adaptado -->
+      <button mat-button class="btn btn-back" (click)="goBack()"
+        [title]="isAdminView ? 'Voltar para RDM Pendentes' : 'Voltar para Dashboard'">
+        <mat-icon>arrow_back</mat-icon>
+        {{ isAdminView ? 'Voltar' : 'Dashboard' }}
+      </button>
+
+      <div class="header-spacer"></div>
+
+      <!-- Botão de PDF sempre disponível -->
+      <button mat-raised-button class="btn btn-primary" (click)="downloadPDF()"
+        [disabled]="downloadingPDF || isLoading">
+        <mat-icon>
+          {{ downloadingPDF ? 'hourglass_empty' : 'picture_as_pdf' }}
+        </mat-icon>
+        {{ downloadingPDF ? 'Baixando...' : 'Baixar PDF' }}
+      </button>
+
+      <!-- Botão para baixar anexos (se existirem) -->
+      <button mat-raised-button class="btn btn-secondary" (click)="downloadAttachment()"
+        [disabled]="downloadingAttachment || isLoading || !hasAttachment"
+        [matTooltip]="!hasAttachment ? 'Não há anexo disponível para este RDM' : 'Clique para baixar o anexo'"
+        [class.no-attachment]="!hasAttachment">
+        <mat-icon>
+          {{ downloadingAttachment ? 'hourglass_empty' : 'attach_file' }}
+        </mat-icon>
+        {{ downloadingAttachment ? 'Baixando...' : 'Baixar Anexo' }}
+      </button>
+
+      <!-- Ações de ADMIN só aparecem se showAdminActions = true -->
+      @if (showAdminActions) {
+      <button mat-raised-button class="btn btn-success" (click)="approveRDM()" [disabled]="isLoading">
+        <mat-icon>check_circle</mat-icon>
+        Aprovar RDM
+      </button>
+
+      <button mat-raised-button class="btn btn-danger" (click)="rejectRDM()" [disabled]="isLoading">
+        <mat-icon>cancel</mat-icon>
+        Rejeitar RDM
+      </button>
+      }
+    </div>
+
+    <!-- Título e metadados -->
+    <div class="document-title">
+      <h1>Requisito de Mudança (RDM)</h1>
+      <div class="document-subtitle">
+        <strong>Título:</strong>
+        <span class="ticket-number">{{ rdmDetails?.identification?.title }}</span>
+      </div>
+      <div class="document-meta">
+        <div class="meta-item">
+          <strong>Ticket:</strong>
+          <span class="ticket-number">{{ ticketId }}</span>
+        </div>
+        <div class="meta-item">
+          <strong>Status:</strong>
+          <span class="status-badge" [class]="getStatusClass(rdmDetails?.status)">
+            {{ rdmDetails?.status || 'Pendente' }}
+          </span>
+        </div>
+
+        @if (isAdminView && rdmDetails?.name) {
+        <div class="meta-item">
+          <strong>Solicitante:</strong>
+          <span>{{ rdmDetails.name }}</span>
+        </div>
+        }
+
+        <!-- Data de criação -->
+        <div class="meta-item">
+          <strong>Criado em:</strong>
+          <span>
+            {{ formatDateLikeList(rdmDetails?.date) || 'Não informado' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mensagens de erro -->
+  @if (downloadError) {
+  <div class="notification notification-error" role="alert">
+    <div class="notification-content">
+      <mat-icon>error</mat-icon>
+      <span>{{ downloadError }}</span>
+    </div>
+    <button type="button" class="notification-close" (click)="downloadError = ''">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+  }
+
+  @if (errorMessage) {
+  <div class="alert alert-warning">
+    <mat-icon>warning</mat-icon>
+    {{ errorMessage }}
+  </div>
+  }
+
+  <!-- Loading -->
+  @if (isLoading) {
+  <div class="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Carregando detalhes da RDM...</p>
+  </div>
+  }
+
+  <!-- Conteúdo de detalhes (somente visualização) -->
+  @if (rdmDetails && !isLoading) {
+  <div class="document-body">
+
+    <!-- Seção 1: Identificação -->
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>fingerprint</mat-icon>
+        <h2>1. Identificação</h2>
+      </div>
+      <div class="section-content">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Tipo de RDM:</label>
+            <div class="form-value">{{ rdmDetails.identification?.type || 'Não informado' }}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Área Solicitante:</label>
+            <div class="form-value">{{ rdmDetails.identification?.area || 'Não informado' }}</div>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label class="form-label">Título da Mudança:</label>
+          <div class="form-value title">{{ rdmDetails.identification?.title || 'Não informado' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção 2: Objetivo/Solução -->
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>description</mat-icon>
+        <h2>2. Objetivo e/ou Solução Proposta</h2>
+      </div>
+      <div class="section-content">
+        <div class="form-group full-width">
+          <label class="form-label">Objetivo/Solução:</label>
+          <div class="form-value text-block">
+            {{ rdmDetails.solution?.objectiveOrSolution || 'Não informado' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção 3: Categorização -->
+    @if (rdmDetails.category?.objective || rdmDetails.category?.action ||
+    rdmDetails.category?.impact || rdmDetails.category?.urgency) {
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>category</mat-icon>
+        <h2>3. Categorização</h2>
+      </div>
+      <div class="section-content">
+        <div class="form-grid">
+          @if (rdmDetails.category?.objective) {
+          <div class="form-group">
+            <label class="form-label">Objetivo:</label>
+            <div class="form-value">{{ rdmDetails.category.objective }}</div>
+          </div>
+          }
+          @if (rdmDetails.category?.action) {
+          <div class="form-group">
+            <label class="form-label">Ação:</label>
+            <div class="form-value">{{ rdmDetails.category.action }}</div>
+          </div>
+          }
+          @if (rdmDetails.category?.impact) {
+          <div class="form-group">
+            <label class="form-label">Impacto:</label>
+            <div class="form-value impact-{{ rdmDetails.category.impact?.toLowerCase() }}">
+              {{ getCategoryLabel(rdmDetails.category.impact) }}
+            </div>
+          </div>
+          }
+          @if (rdmDetails.category?.urgency) {
+          <div class="form-group">
+            <label class="form-label">Urgência:</label>
+            <div class="form-value urgency-{{ rdmDetails.category.urgency?.toLowerCase() }}">
+              {{ getCategoryLabel(rdmDetails.category.urgency) }}
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Seção 4: Categoria de Impacto -->
+    @if (rdmDetails.impactCategory?.changeSystem || rdmDetails.impactCategory?.activity ||
+    rdmDetails.impactCategory?.environment || rdmDetails.impactCategory?.impactedServices ||
+    rdmDetails.impactCategory?.iCsImpacted) {
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>warning</mat-icon>
+        <h2>4. Categoria de Impacto</h2>
+      </div>
+      <div class="section-content">
+        @if (rdmDetails.impactCategory?.changeSystem) {
+        <div class="form-group">
+          <label class="form-label">Servidor/Sistema:</label>
+          <div class="form-value">{{ rdmDetails.impactCategory.changeSystem }}</div>
+        </div>
+        }
+        <div class="form-row">
+          @if (rdmDetails.impactCategory?.activity) {
+          <div class="form-group half">
+            <label class="form-label">Atividade:</label>
+            <div class="form-value">{{ getActivityLabel(rdmDetails.impactCategory.activity) }}</div>
+          </div>
+          }
+          @if (rdmDetails.impactCategory?.environment) {
+          <div class="form-group half">
+            <label class="form-label">Ambiente:</label>
+            <div class="form-value">{{ getEnvironmentLabel(rdmDetails.impactCategory.environment) }}</div>
+          </div>
+          }
+        </div>
+        @if (rdmDetails.impactCategory?.impactedServices) {
+        <div class="form-group">
+          <label class="form-label">Serviços Impactados:</label>
+          <div class="form-value">{{ rdmDetails.impactCategory.impactedServices }}</div>
+        </div>
+        }
+        @if (rdmDetails.impactCategory?.iCsImpacted) {
+        <div class="form-group">
+          <label class="form-label">ICs Impactados:</label>
+          <div class="form-value">{{ rdmDetails.impactCategory.iCsImpacted }}</div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Seção 5: Janela de Implantação -->
+    @if (rdmDetails.deploymentWindow?.impactType) {
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>schedule</mat-icon>
+        <h2>5. Janela de Implantação</h2>
+      </div>
+      <div class="section-content">
+        <div class="form-group">
+          <label class="form-label">Tipo de Impacto:</label>
+          <div class="form-value">{{ getImpactTypeLabel(rdmDetails.deploymentWindow.impactType) }}</div>
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Seção 6: Plano de Comunicação -->
+    @if (rdmDetails.planComunication?.whosNotified || rdmDetails.planComunication?.moment ||
+    rdmDetails.planComunication?.comunicationType || rdmDetails.planComunication?.technologyArea) {
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>notifications</mat-icon>
+        <h2>6. Plano de Comunicação</h2>
+      </div>
+      <div class="section-content">
+        @if (rdmDetails.planComunication?.whosNotified) {
+        <div class="form-group">
+          <label class="form-label">Quem será Notificado:</label>
+          <div class="form-value">{{ rdmDetails.planComunication.whosNotified }}</div>
+        </div>
+        }
+        <div class="form-row">
+          @if (rdmDetails.planComunication?.moment) {
+          <div class="form-group half">
+            <label class="form-label">Momento da Comunicação:</label>
+            <div class="form-value">{{ getMomentLabel(rdmDetails.planComunication.moment) }}</div>
+          </div>
+          }
+          @if (rdmDetails.planComunication?.comunicationType) {
+          <div class="form-group half">
+            <label class="form-label">Meio utilizado:</label>
+            <div class="form-value">{{ getComunicationTypeLabel(rdmDetails.planComunication.comunicationType) }}</div>
+          </div>
+          }
+        </div>
+        @if (rdmDetails.planComunication?.technologyArea) {
+        <div class="form-group">
+          <label class="form-label">Responsável:</label>
+          <div class="form-value">{{ getTechnologyAreaLabel(rdmDetails.planComunication.technologyArea) }}</div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Seção 7: Fases do Projeto -->
+    @if (rdmDetails.phases?.planning || rdmDetails.phases?.testHomology ||
+    rdmDetails.phases?.execute || rdmDetails.phases?.validation) {
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>timeline</mat-icon>
+        <h2>7. Fases do Projeto</h2>
+      </div>
+      <div class="section-content planning-grid">
+
+        <!-- Planejamento -->
+        @if (rdmDetails.phases?.planning && (rdmDetails.phases.planning.wasPlanned ||
+        rdmDetails.phases.planning.WasPlanned)) {
+        <div class="planning-card">
+          <div class="planning-header">
+            <mat-icon>calendar_today</mat-icon>
+            <h3>Planejamento</h3>
+          </div>
+          <div class="planning-content">
+            <div class="planning-field">
+              <label class="planning-label">Foi planejado?</label>
+              <span class="planning-value">
+                {{ (rdmDetails.phases.planning.wasPlanned || rdmDetails.phases.planning.WasPlanned) === 'SIM' ? 'Sim' :
+                'Não' }}
+              </span>
+            </div>
+            @if ((rdmDetails.phases.planning.wasPlanned || rdmDetails.phases.planning.WasPlanned) === 'NAO' &&
+            (rdmDetails.phases.planning.justification || rdmDetails.phases.planning.JustificationPlanned)) {
+            <div class="planning-field">
+              <label class="planning-label">Justificativa:</label>
+              <span class="planning-value">
+                {{ rdmDetails.phases.planning.justification || rdmDetails.phases.planning.JustificationPlanned }}
+              </span>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Teste/Homologação -->
+        @if (rdmDetails.phases?.testHomology && (rdmDetails.phases.testHomology.wasTested ||
+        rdmDetails.phases.testHomology.WasTested)) {
+        <div class="planning-card">
+          <div class="planning-header">
+            <mat-icon>science</mat-icon>
+            <h3>Teste/Homologação</h3>
+          </div>
+          <div class="planning-content">
+            <div class="planning-field">
+              <label class="planning-label">Foi realizado?</label>
+              <span class="planning-value">
+                {{ (rdmDetails.phases.testHomology.wasTested || rdmDetails.phases.testHomology.WasTested) === 'SIM' ?
+                'Sim' : 'Não' }}
+              </span>
+            </div>
+            @if ((rdmDetails.phases.testHomology.wasTested || rdmDetails.phases.testHomology.WasTested) === 'NAO' &&
+            (rdmDetails.phases.testHomology.justification || rdmDetails.phases.testHomology.JustificationTest)) {
+            <div class="planning-field">
+              <label class="planning-label">Justificativa:</label>
+              <span class="planning-value">
+                {{ rdmDetails.phases.testHomology.justification || rdmDetails.phases.testHomology.JustificationTest }}
+              </span>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Execução -->
+        @if (rdmDetails.phases?.execute && (rdmDetails.phases.execute.stage || rdmDetails.phases.execute.startDate)) {
+        <div class="planning-card">
+          <div class="planning-header">
+            <mat-icon>play_circle</mat-icon>
+            <h3>Execução</h3>
+          </div>
+          <div class="planning-content">
+            @if (rdmDetails.phases.execute.stage) {
+            <div class="planning-field">
+              <label class="planning-label">Momento:</label>
+              <span class="planning-value">{{ getStageLabel(rdmDetails.phases.execute.stage) }}</span>
+            </div>
+            }
+            @if (rdmDetails.phases.execute.startDate) {
+            <div class="planning-field">
+              <label class="planning-label">Início:</label>
+              <span class="planning-value">{{ formatDateWithTime(rdmDetails.phases.execute.startDate) }}</span>
+            </div>
+            }
+            @if (rdmDetails.phases.execute.endDate) {
+            <div class="planning-field">
+              <label class="planning-label">Término:</label>
+              <span class="planning-value">{{ formatDateWithTime(rdmDetails.phases.execute.endDate) }}</span>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Validação -->
+        @if (rdmDetails.phases?.validation && (rdmDetails.phases.validation.stage ||
+        rdmDetails.phases.validation.startDate)) {
+        <div class="planning-card">
+          <div class="planning-header">
+            <mat-icon>verified</mat-icon>
+            <h3>Validação</h3>
+          </div>
+          <div class="planning-content">
+            @if (rdmDetails.phases.validation.stage) {
+            <div class="planning-field">
+              <label class="planning-label">Momento:</label>
+              <span class="planning-value">{{ getStageLabel(rdmDetails.phases.validation.stage) }}</span>
+            </div>
+            }
+            @if (rdmDetails.phases.validation.startDate) {
+            <div class="planning-field">
+              <label class="planning-label">Início:</label>
+              <span class="planning-value">{{ formatDateWithTime(rdmDetails.phases.validation.startDate) }}</span>
+            </div>
+            }
+            @if (rdmDetails.phases.validation.endDate) {
+            <div class="planning-field">
+              <label class="planning-label">Término:</label>
+              <span class="planning-value">{{ formatDateWithTime(rdmDetails.phases.validation.endDate) }}</span>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Seção 8: Planejamento -->
+    @if (rdmDetails.planningExecutation || rdmDetails.planningRemediation) {
+    <div class="document-section">
+      <div class="section-header">
+        <mat-icon>construction</mat-icon>
+        <h2>8. Planejamento</h2>
+      </div>
+      <div class="section-content planning-grid">
+
+        <!-- Execução -->
+        @if (rdmDetails.planningExecutation) {
+        <div class="planning-card">
+          <div class="planning-header">
+            <mat-icon>play_arrow</mat-icon>
+            <h3>Plano de Execução</h3>
+          </div>
+          <div class="planning-content">
+            @if (rdmDetails.planningExecutation.ativity) {
+            <div class="planning-field">
+              <label class="planning-label">Atividade(s):</label>
+              <span class="planning-value">{{ rdmDetails.planningExecutation.ativity }}</span>
+            </div>
+            }
+            @if (rdmDetails.planningExecutation.technologyArea) {
+            <div class="planning-field">
+              <label class="planning-label">Executor(es):</label>
+              <span class="planning-value">
+                {{ getTechnologyAreaLabel(rdmDetails.planningExecutation.technologyArea) }}
+              </span>
+            </div>
+            }
+            @if (rdmDetails.planningExecutation.probabilityOfSuccess) {
+            <div class="planning-field">
+              <label class="planning-label">Probabilidade de Sucesso:</label>
+              <span
+                class="planning-value success-{{ rdmDetails.planningExecutation.probabilityOfSuccess?.toLowerCase() }}">
+                {{ getCategoryLabel(rdmDetails.planningExecutation.probabilityOfSuccess) }}
+              </span>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Remediação -->
+        @if (rdmDetails.planningRemediation) {
+        <div class="planning-card">
+          <div class="planning-header">
+            <mat-icon>settings_backup_restore</mat-icon>
+            <h3>Plano de Remediação</h3>
+          </div>
+          <div class="planning-content">
+            @if (rdmDetails.planningRemediation.ativity) {
+            <div class="planning-field">
+              <label class="planning-label">Atividade(s):</label>
+              <span class="planning-value">{{ rdmDetails.planningRemediation.ativity }}</span>
+            </div>
+            }
+            @if (rdmDetails.planningRemediation.technologyArea) {
+            <div class="planning-field">
+              <label class="planning-label">Executor(es):</label>
+              <span class="planning-value">
+                {{ getTechnologyAreaLabel(rdmDetails.planningRemediation.technologyArea) }}
+              </span>
+            </div>
+            }
+            @if (rdmDetails.planningRemediation.probabilityOfSuccess) {
+            <div class="planning-field">
+              <label class="planning-label">Probabilidade de Sucesso:</label>
+              <span
+                class="planning-value success-{{ rdmDetails.planningRemediation.probabilityOfSuccess?.toLowerCase() }}">
+                {{ getCategoryLabel(rdmDetails.planningRemediation.probabilityOfSuccess) }}
+              </span>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+  </div>
+  }
+
+  <!-- Modal para aprovar/rejeitar RDM -->
+@if (showModal) {
+  <app-modal [title]="modalType === 'approve' ? 'Confirmar Aprovação' : 'Confirmar Rejeição'"
+             [visible]="showModal"
+             [buttonText]="isProcessing ? 'Processando...' : 'Cancelar'"
+             [showFooter]="false"
+             size="medium"
+             (closed)="closeModal()">
+
+    <div class="modal-rdm-action-content">
+      @if (modalType === 'approve') {
+        <!-- Modal de Aprovação -->
+        <div class="approve-modal">
+          <div class="rdm-info">
+            <div class="info-header">
+              <h3>Informações da RDM</h3>
+            </div>
+
+            <div class="info-grid">
+              <!-- TICKET -->
+              <div class="info-item">
+                <div>
+                  <label>Ticket:</label>
+                  <strong>{{ ticketId }}</strong>
+                </div>
+              </div>
+
+              <!-- SOLICITANTE -->
+              @if (rdmDetails?.name) {
+                <div class="info-item">
+                  <div>
+                    <label>Solicitante:</label>
+                    <strong>{{ rdmDetails.name }}</strong>
+                  </div>
+                </div>
+              }
+
+              <!-- TÍTULO -->
+              @if (rdmDetails?.identification?.title) {
+                <div class="info-item">
+                  <div>
+                    <label>Título:</label>
+                    <strong>{{ rdmDetails.identification.title }}</strong>
+                  </div>
+                </div>
+              }
+
+              <!-- DATA -->
+              @if (rdmDetails?.date) {
+                <div class="info-item">
+                  <div>
+                    <label>Data:</label>
+                    <strong>{{ formatDateLikeList(rdmDetails.date) }}</strong>
+                  </div>
+                </div>
+              }
+
+              <!-- STATUS -->
+              <div class="info-item">
+                <div>
+                  <label>Status:</label>
+                  <strong>{{ rdmDetails?.status || 'Pendente' }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="confirmation-message">
+            <p>Deseja realmente <strong>aprovar</strong> esta RDM?</p>
+            <small class="text-muted">Esta ação não pode ser desfeita.</small>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="closeModal()" [disabled]="isProcessing">
+              Cancelar
+            </button>
+            <button class="btn btn-success" (click)="processRDM()" [disabled]="isProcessing">
+              @if (isProcessing) {
+                <ng-container>
+                  <mat-icon class="spinner">hourglass_empty</mat-icon>
+                  Processando...
+                </ng-container>
+              } @else {
+                Confirmar Aprovação
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (modalType === 'reject') {
+        <!-- Modal de Reprovação -->
+        <div class="reject-modal">
+          <div class="rdm-info">
+            <div class="info-header">
+              <h3>Informações da RDM</h3>
+            </div>
+
+            <div class="info-grid">
+              <!-- TICKET -->
+              <div class="info-item">
+                <div>
+                  <label>Ticket:</label>
+                  <strong>{{ ticketId }}</strong>
+                </div>
+              </div>
+
+              <!-- SOLICITANTE -->
+              @if (rdmDetails?.name) {
+                <div class="info-item">
+                  <div>
+                    <label>Solicitante:</label>
+                    <strong>{{ rdmDetails.name }}</strong>
+                  </div>
+                </div>
+              }
+
+              <!-- TÍTULO -->
+              @if (rdmDetails?.identification?.title) {
+                <div class="info-item">
+                  <div>
+                    <label>Título:</label>
+                    <strong>{{ rdmDetails.identification.title }}</strong>
+                  </div>
+                </div>
+              }
+
+              <!-- DATA -->
+              @if (rdmDetails?.date) {
+                <div class="info-item">
+                  <div>
+                    <label>Data:</label>
+                    <strong>{{ formatDateLikeList(rdmDetails.date) }}</strong>
+                  </div>
+                </div>
+              }
+
+              <!-- STATUS -->
+              <div class="info-item">
+                <div>
+                  <label>Status:</label>
+                  <strong>{{ rdmDetails?.status || 'Pendente' }}</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rejection-form">
+            <div class="form-header">
+              <h4>Motivo da Reprovação</h4>
+            </div>
+
+            <p class="form-description">
+              Informe o motivo da reprovação para que o solicitante possa entender e corrigir os problemas:
+            </p>
+
+            <div class="form-group">
+              <textarea [(ngModel)]="rejectionReason"
+                        placeholder="Descreva o motivo da reprovação..."
+                        rows="4"
+                        class="rejection-textarea"
+                        [disabled]="isProcessing"></textarea>
+
+              @if (!rejectionReason.trim() && !isProcessing) {
+                <div class="form-hint">
+                  Este campo é obrigatório para rejeitar a RDM.
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-secondary" (click)="closeModal()" [disabled]="isProcessing">
+              Cancelar
+            </button>
+            <button class="btn btn-danger"
+                    (click)="processRDM()"
+                    [disabled]="!rejectionReason.trim() || isProcessing">
+              @if (isProcessing) {
+                <ng-container>
+                  <mat-icon class="spinner">hourglass_empty</mat-icon>
+                  Processando...
+                </ng-container>
+              } @else {
+                Confirmar Rejeição
+              }
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </app-modal>
+}
+</div>

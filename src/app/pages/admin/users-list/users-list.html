@@ -1,0 +1,582 @@
+<!-- src/app/pages/admin/users-list/users-list.html -->
+<div class="users-list-container container-content-dashboard">
+  <div class="section-header">
+    <h2>Usuários Cadastrados</h2>
+    <p>Gerencie todos os usuários do sistema</p>
+  </div>
+
+  <!-- Indicador de carregamento completo -->
+  @if (isLoadingAll) {
+    <div class="loading-overlay-message">
+      <div class="loading-spinner"></div>
+      <span>Carregando todos os usuários para filtragem...</span>
+    </div>
+  }
+
+  <!-- Mensagem de erro da API -->
+  @if (apiError) {
+    <div class="alert alert-danger api-error">
+      {{ apiError }}
+    </div>
+  }
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="search-bar">
+      <div class="search-wrapper">
+        <input type="text"
+               [(ngModel)]="searchTerm"
+               (ngModelChange)="searchUsers()"
+               placeholder="Buscar por nome, email, departamento..."
+               class="search-input"
+               [disabled]="isLoading || isLoadingAll">
+        @if (searchTerm) {
+          <button class="clear-search-btn" (click)="searchTerm = ''; searchUsers()"
+                  title="Limpar busca" [disabled]="isLoading || isLoadingAll">
+            ×
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label for="statusFilter" class="filter-label">Status</label>
+        <select id="statusFilter"
+                [(ngModel)]="statusFilter"
+                (change)="filterByStatus()"
+                class="filter-select"
+                [disabled]="isLoading || isLoadingAll">
+          @for (option of statusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="roleFilter" class="filter-label">Perfil</label>
+        <select id="roleFilter"
+                [(ngModel)]="roleFilter"
+                (change)="filterByRole()"
+                class="filter-select"
+                [disabled]="isLoading || isLoadingAll">
+          @for (option of roleOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+      </div>
+
+      @if (hasActiveFilters()) {
+        <button class="btn btn-sm btn-secondary clear-filters-btn"
+                (click)="clearFilters()"
+                [disabled]="isLoading || isLoadingAll">
+          Limpar Filtros
+        </button>
+      }
+
+      <button class="btn btn-sm btn-secondary refresh-btn"
+              (click)="refreshUsers()"
+              [disabled]="isLoading || isLoadingAll">
+        @if (isLoadingAll) {
+          Carregando...
+        } @else {
+          Atualizar
+        }
+      </button>
+    </div>
+
+    <!-- Resumo de filtros e informações -->
+    <div class="filter-info">
+      <div class="search-info">
+        @if (isLoadingAll) {
+          <span>Carregando usuários para filtragem...</span>
+        } @else {
+          <span>{{ totalUsers }} usuário(s) encontrado(s)</span>
+        }
+        @if (isLoading) {
+          <span class="loading-indicator">Carregando página...</span>
+        }
+      </div>
+
+      @if (hasActiveFilters()) {
+        <div class="filter-summary">
+          <span class="filter-summary-text">Filtros ativos: {{ getFilterSummary() }}</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Tabela de usuários -->
+  <div class="table-container">
+    <table class="users-table">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Email</th>
+          <th>Departamento</th>
+          <th>Situação</th>
+          <th>Perfil</th>
+          <th>Data Cadastro</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (user of displayedUsers; track user.email) {
+          <tr>
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar-small">
+                  {{ user.name.charAt(0).toUpperCase() }}
+                </div>
+                <span class="user-name">{{ user.name }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="email-cell">
+                {{ user.email }}
+              </div>
+            </td>
+            <td>{{ user.department }}</td>
+            <td>
+              <span class="status-badge" [class]="getSituationClass(user.situation)">
+                {{ user.situation }}
+              </span>
+            </td>
+            <td>
+              <span class="role-badge" [class]="getRoleClass(user.role)">
+                {{ formatRole(user.role) }}
+              </span>
+            </td>
+            <td>{{ user.registrationDate || 'N/A' }}</td>
+            <td class="actions-cell">
+              <button class="btn btn-sm btn-primary"
+                      (click)="openUserModal(user)"
+                      title="Gerenciar usuário"
+                      [disabled]="isLoading || isLoadingAll">
+                Gerenciar
+              </button>
+            </td>
+          </tr>
+        }
+
+        @empty {
+          <tr>
+            <td colspan="7" class="empty-message">
+              <div class="empty-state">
+                @if (isLoading || isLoadingAll) {
+                  <h3>Carregando usuários...</h3>
+                } @else {
+                  <h3>Nenhum usuário encontrado</h3>
+                  <p>Tente ajustar os termos da busca ou limpar os filtros</p>
+                }
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação completa -->
+  @if (totalUsers > 0 && !isLoadingAll) {
+    <div class="pagination-container">
+      <div class="pagination-info">
+        Mostrando {{ getStartIndex() }} a {{ getEndIndex() }} de {{ totalUsers }} usuários
+      </div>
+
+      <div class="pagination-controls">
+        <button class="btn btn-sm btn-secondary"
+                (click)="goToFirstPage()"
+                [disabled]="!hasPrevPage() || isLoading"
+                title="Primeira página">
+          &laquo;
+        </button>
+
+        <button class="btn btn-sm btn-secondary"
+                (click)="prevPage()"
+                [disabled]="!hasPrevPage() || isLoading"
+                title="Página anterior">
+          &lsaquo;
+        </button>
+
+        @for (page of pages; track page) {
+          <button class="btn btn-sm pagination-btn"
+                  [class.active]="currentPage === page"
+                  (click)="goToPage(page)"
+                  [disabled]="isLoading"
+                  [title]="'Ir para página ' + page">
+            {{ page }}
+          </button>
+        }
+
+        <button class="btn btn-sm btn-secondary"
+                (click)="nextPage()"
+                [disabled]="!hasNextPage() || isLoading"
+                title="Próxima página">
+          &rsaquo;
+        </button>
+
+        <button class="btn btn-sm btn-secondary"
+                (click)="goToLastPage()"
+                [disabled]="!hasNextPage() || isLoading"
+                title="Última página">
+          &raquo;
+        </button>
+      </div>
+
+      <div class="pagination-size">
+        <label for="pageSize">Mostrar:</label>
+        <select id="pageSize"
+                [(ngModel)]="pageSize"
+                (change)="onPageSizeChange()"
+                [disabled]="isLoading"
+                class="form-control-sm">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+    </div>
+  }
+
+  <!-- Modal -->
+  <app-modal [visible]="showUserModal"
+             [title]="'Gerenciar Usuário'"
+             [size]="'large'"
+             [showFooter]="false"
+             (closed)="closeUserModal()">
+
+    <div class="user-management-modal">
+      @if (selectedUser) {
+        <!-- Informações do usuário -->
+        <div class="user-info-card">
+          <div class="user-avatar-large">
+            {{ selectedUser.name.charAt(0).toUpperCase() }}
+          </div>
+          <div class="user-details">
+            <h3>{{ selectedUser.name }}</h3>
+            <p class="user-email">{{ selectedUser.email }}</p>
+            <div class="user-info-grid">
+              <div class="info-item">
+                <span class="info-label">Departamento:</span>
+                <span class="info-value">{{ selectedUser.department }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Perfil:</span>
+                <span class="role-badge" [class]="getRoleClass(selectedUser.role)">
+                  {{ formatRole(selectedUser.role) }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Status:</span>
+                <span class="status-badge" [class]="getSituationClass(selectedUser.situation)">
+                  {{ selectedUser.situation }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Cadastro:</span>
+                <span class="info-value">{{ selectedUser.registrationDate || 'N/A' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Abas de navegação -->
+        <div class="modal-tabs">
+          <button class="tab-btn"
+                  [class.active]="activeTab === 'info'"
+                  (click)="setActiveTab('info')">
+            Informações
+          </button>
+          <button class="tab-btn"
+                  [class.active]="activeTab === 'password'"
+                  (click)="setActiveTab('password')">
+            Redefinir Senha
+          </button>
+          <button class="tab-btn"
+                  [class.active]="activeTab === 'role'"
+                  (click)="setActiveTab('role')">
+            Alterar Perfil
+          </button>
+          <button class="tab-btn"
+                  [class.active]="activeTab === 'status'"
+                  (click)="setActiveTab('status')">
+            Alterar Status
+          </button>
+        </div>
+
+        <!-- Conteúdo das abas -->
+        <div class="tab-content">
+          <!-- Aba: Informações -->
+          @if (activeTab === 'info') {
+            <div class="tab-pane">
+              <div class="info-section">
+                <h4>Informações do Usuário</h4>
+                <p>Use as abas acima para gerenciar este usuário:</p>
+                <ul class="info-list">
+                  <li><strong>Redefinir Senha:</strong> Gere uma nova senha para o usuário</li>
+                  <li><strong>Alterar Perfil:</strong> Mude o perfil de acesso (Administrador/Padrão)</li>
+                  <li><strong>Alterar Status:</strong> Aprove ou reprove o usuário (pendente não pode ser alterado)</li>
+                </ul>
+              </div>
+            </div>
+          }
+
+          <!-- Aba: Redefinir Senha -->
+          @if (activeTab === 'password') {
+            <div class="tab-pane">
+              <div class="form-section">
+                <h4>Redefinir Senha</h4>
+
+                <!-- Mensagens de erro/sucesso -->
+                @if (resetError) {
+                  <div class="alert alert-danger">{{ resetError }}</div>
+                }
+
+                @if (resetSuccess) {
+                  <div class="alert alert-success">
+                    <strong>Sucesso!</strong> Senha redefinida. Copie-a agora!
+                  </div>
+                }
+
+                <!-- Opções de senha -->
+                <div class="form-group">
+                  <label class="form-label">Nova Senha</label>
+
+                  <div class="password-options">
+                    <div class="password-option">
+                      <input type="radio"
+                             id="autoGenerate"
+                             name="passwordOption"
+                             [checked]="passwordOption === 'auto'"
+                             (change)="setPasswordOption('auto')">
+                      <label for="autoGenerate">Gerar senha automática</label>
+                    </div>
+                    <div class="password-option">
+                      <input type="radio"
+                             id="manualInput"
+                             name="passwordOption"
+                             [checked]="passwordOption === 'manual'"
+                             (change)="setPasswordOption('manual')">
+                      <label for="manualInput">Digitar senha manualmente</label>
+                    </div>
+                  </div>
+
+                  <!-- Campo de senha automática -->
+                  @if (passwordOption === 'auto') {
+                    <div class="password-input-group">
+                      <input title="Nova senha"
+                             type="text"
+                             [(ngModel)]="newPassword"
+                             class="form-control"
+                             [readonly]="true">
+                      <button class="btn btn-icon copy-btn"
+                              (click)="copyPassword()"
+                              title="Copiar senha"
+                              [disabled]="isResetting">
+                        Copiar
+                      </button>
+                      <button class="btn btn-icon generate-btn"
+                              (click)="generateNewPassword()"
+                              title="Gerar nova senha"
+                              [disabled]="isResetting">
+                        Gerar
+                      </button>
+                    </div>
+                  }
+
+                  <!-- Campo para digitar senha manualmente -->
+                  @if (passwordOption === 'manual') {
+                    <div class="manual-password-input">
+                      <input title="Digite a senha"
+                             type="text"
+                             [(ngModel)]="manualPassword"
+                             class="form-control"
+                             placeholder="Digite a nova senha..."
+                             [disabled]="isResetting">
+                      @if (manualPassword) {
+                        <div class="password-strength">
+                          <div class="strength-meter">
+                            <div class="strength-bar" [class]="getPasswordStrengthClass()"></div>
+                          </div>
+                          <small class="strength-text">{{ getPasswordStrengthText() }}</small>
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Validação da senha manual -->
+                    <div class="password-requirements">
+                      <small class="form-text">A senha deve conter:</small>
+                      <ul class="requirements-list">
+                        <li [class.valid]="hasMinLength">Mínimo de 8 caracteres</li>
+                        <li [class.valid]="hasUpperCase">Pelo menos uma letra maiúscula</li>
+                        <li [class.valid]="hasLowerCase">Pelo menos uma letra minúscula</li>
+                        <li [class.valid]="hasNumber">Pelo menos um número</li>
+                        <li [class.valid]="hasSpecialChar">Pelo menos um caractere especial (!@#$%^&*)</li>
+                      </ul>
+                    </div>
+                  }
+                </div>
+
+                <!-- Aviso importante -->
+                <div class="alert alert-warning">
+                  <strong>Atenção:</strong> Esta senha será enviada ao usuário.
+                  Certifique-se de copiá-la, pois ela não será exibida novamente.
+                </div>
+
+                <!-- Botão de ação -->
+                <div class="form-actions">
+                  <button class="btn btn-warning"
+                          (click)="resetPassword()"
+                          [disabled]="isResetting || !isPasswordValid()">
+                    @if (isResetting) {
+                      Processando...
+                    } @else {
+                      Confirmar Redefinição
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Aba: Alterar Perfil -->
+          @if (activeTab === 'role') {
+            <div class="tab-pane">
+              <div class="form-section">
+                <h4>Alterar Perfil</h4>
+
+                <!-- Mensagens de erro/sucesso -->
+                @if (changeRoleError) {
+                  <div class="alert alert-danger">{{ changeRoleError }}</div>
+                }
+
+                @if (changeRoleSuccess) {
+                  <div class="alert alert-success">
+                    <strong>Sucesso!</strong> Perfil alterado com sucesso.
+                  </div>
+                }
+
+                <!-- Seleção do novo role -->
+                <div class="form-group">
+                  <label class="form-label">Novo Perfil</label>
+                  <select title="Status"
+                          class="form-control"
+                          [(ngModel)]="selectedRole"
+                          [disabled]="isChangingRole">
+                    @for (option of modalRoleOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                  <small class="form-text">
+                    Selecione o novo perfil de acesso para este usuário.
+                  </small>
+                </div>
+
+                <!-- Informações sobre os perfis -->
+                <div class="role-info">
+                  <h5>Sobre os Perfis:</h5>
+                  <ul>
+                    <li>
+                      <strong>Administrador:</strong> Acesso completo ao sistema, incluindo gestão de usuários, aprovação de solicitações e configurações.
+                    </li>
+                    <li>
+                      <strong>Padrão:</strong> Acesso às funcionalidades principais como criar e visualizar solicitações, sem permissões administrativas.
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Botão de ação -->
+                <div class="form-actions">
+                  <button class="btn btn-primary"
+                          (click)="changeUserRole()"
+                          [disabled]="isChangingRole || !selectedRole || selectedRole === selectedUser.role">
+                    @if (isChangingRole) {
+                      Processando...
+                    } @else {
+                      Confirmar Alteração
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+
+          <!-- Aba: Alterar Status -->
+          @if (activeTab === 'status') {
+            <div class="tab-pane">
+              <div class="form-section">
+                <h4>Alterar Status</h4>
+
+                <!-- Mensagens de erro/sucesso -->
+                @if (changeStatusError) {
+                  <div class="alert alert-danger">{{ changeStatusError }}</div>
+                }
+
+                @if (changeStatusSuccess) {
+                  <div class="alert alert-success">
+                    <strong>Sucesso!</strong> Status alterado com sucesso.
+                  </div>
+                }
+
+                <!-- Seleção do novo status -->
+                <div class="form-group">
+                  <label class="form-label">Novo Status</label>
+                  <select title="Novo Status"
+                          class="form-control"
+                          [(ngModel)]="selectedStatus"
+                          [disabled]="isChangingStatus">
+                    @for (option of modalStatusOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                  <small class="form-text">
+                    Selecione o novo status para este usuário.
+                    <span class="text-warning">Nota: O status "pendente" não pode ser definido através desta funcionalidade.</span>
+                  </small>
+                </div>
+
+                <!-- Informações sobre os status -->
+                <div class="status-info">
+                  <h5>Sobre os Status:</h5>
+                  <ul>
+                    <li>
+                      <strong>Aprovado:</strong> Usuário ativo com acesso completo ao sistema.
+                    </li>
+                    <li>
+                      <strong>Pendente (somente leitura):</strong> Aguardando aprovação.
+                    </li>
+                    <li>
+                      <strong>Reprovado:</strong> Usuário inativo/suspenso, sem acesso ao sistema.
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Botão de ação -->
+                <div class="form-actions">
+                  <button class="btn btn-info"
+                          (click)="changeUserStatus()"
+                          [disabled]="isChangingStatus || !selectedStatus || selectedStatus === selectedUser.situation">
+                    @if (isChangingStatus) {
+                      Processando...
+                    } @else {
+                      Confirmar Alteração
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Botão de fechar no rodapé -->
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeUserModal()">
+            Fechar
+          </button>
+        </div>
+      }
+    </div>
+  </app-modal>
+</div>

@@ -1,0 +1,35 @@
+<!-- src/app/pages/admin/admin-nav/admin-nav.html -->
+<nav class="admin-sidebar" aria-label="Navegação do administrador">
+  <div class="admin-header">
+    <h2>Painel Admin</h2>
+    <div class="admin-role">
+      <mat-icon class="role-icon">admin_panel_settings</mat-icon>
+      Administrador
+    </div>
+  </div>
+
+  <div class="admin-tabs" role="tablist">
+    @for (tab of tabs; track tab.id) {
+      <a [routerLink]="tab.route"
+         class="admin-tab"
+         [class.active]="isActive(tab.route)"
+         [attr.aria-selected]="isActive(tab.route)"
+         role="tab"
+         tabindex="0"
+         (keydown)="onKeyDown($event, tab.route)">
+        <mat-icon class="tab-icon">{{ tab.icon }}</mat-icon>
+        <span class="tab-label">{{ tab.label }}</span>
+        @if (isActive(tab.route)) {
+          <div class="active-indicator"></div>
+        }
+      </a>
+    }
+  </div>
+
+  <div class="admin-footer">
+    <button class="logout-btn" (click)="navigateToDashboard()" title="Voltar ao dashboard principal">
+      <mat-icon class="menu-icon">space_dashboard</mat-icon>
+      <span class="logout-text">Voltar ao Dashboard</span>
+    </button>
+  </div>
+</nav>

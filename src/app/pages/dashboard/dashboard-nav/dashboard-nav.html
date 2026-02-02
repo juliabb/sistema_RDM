@@ -1,0 +1,17 @@
+<div class="tabs" role="tablist" aria-label="Navegação entre seções">
+  @for (tab of tabs; track tab.id) {
+    <button
+      type="button"
+      class="tab"
+      [class.active]="activeTab === tab.id"
+      (click)="selectTab(tab.id)"
+      [attr.aria-selected]="activeTab === tab.id"
+      [attr.aria-controls]="tab.id + '-panel'"
+      [id]="tab.id + '-tab'"
+      role="tab"
+      tabindex="0"
+      title="{{ tab.label }}">
+      {{ tab.label }}
+    </button>
+  }
+</div>

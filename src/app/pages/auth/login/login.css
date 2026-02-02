@@ -1,0 +1,239 @@
+.container {
+  display: flex;
+  height: 100vh;
+}
+
+.divider {
+  flex: 1;
+  position: relative; /* Necessário para o pseudo-elemento */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--spacing-xxl);
+  color: var(--white);
+  overflow: hidden; /* Esconde qualquer parte do pseudo-elemento que saia da área */
+}
+
+/* Camada da imagem de fundo */
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('../../../../../public/img/background-prodesp.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+
+/* Camada do gradiente (filtro) por cima da imagem */
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  /* LEFT negativo - igual ao do site oficial */
+  left: -1000px !important;
+  /* WIDTH enorme - igual ao do site oficial */
+  width: 3200px !important;
+  height: 100%;
+  /* Gradiente oficial da Prodesp */
+  background: linear-gradient(to right, rgba(80, 8, 120), rgba(0, 0, 0, 0.6)) !important;
+  z-index: 1;
+}
+
+/* Os elementos dentro do .divider devem ficar acima das camadas de fundo */
+.divider .logo,
+.divider .text {
+  position: relative;
+  z-index: 2;
+}
+
+.logo {
+  width: 15vw;
+  margin-bottom: var(--spacing-xxl);
+}
+
+.text {
+  text-align: center;
+}
+
+.title h1 {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-md);
+  font-weight: 700;
+}
+
+.title p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: var(--white);
+  padding: var(--spacing-xxl);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 400px;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.auth-form h2 {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  color: var(--gray-800);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.input-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.btn-primary {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--primary-700);
+  color: var(--white);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-md);
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-700);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-800);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--primary-100);
+  color: var(--secondary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: var(--spacing-sm);
+  vertical-align: middle;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--white);
+  animation: spin 1s ease-in-out infinite;
+}
+
+.session-expired-message {
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 15px;
+  color: #856404;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .divider {
+    flex: none;
+    height: 40vh;
+    padding: var(--spacing-xl);
+  }
+
+  .logo {
+    width: 30vw;
+  }
+
+  .title h1 {
+    font-size: 1.8rem;
+  }
+
+  .title p {
+    font-size: 1rem;
+  }
+
+  .right {
+    flex: none;
+    height: 60vh;
+    padding: var(--spacing-xl);
+  }
+
+  .auth-form {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .divider {
+    padding: var(--spacing-lg);
+  }
+
+  .right {
+    padding: var(--spacing-lg);
+  }
+
+  .title h1 {
+    font-size: 1.5rem;
+  }
+
+  .auth-form h2 {
+    font-size: 1.5rem;
+  }
+}

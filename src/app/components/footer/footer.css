@@ -1,0 +1,28 @@
+.footer{
+  background-color: #500878;
+  padding: 20px;
+  text-align: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  min-height: 14vh;
+  height: auto;
+}
+
+.logo{
+width: 25%;
+}
+
+.icons-container {
+width: 25%;
+display: grid;
+grid-template-columns: repeat(6, 1fr);
+gap: 10px;
+justify-self: center;
+}
+
+.icons:hover, .icons:active, .icons:focus {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+  fill: var(--primary-300);
+}

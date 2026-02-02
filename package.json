@@ -1,0 +1,52 @@
+{
+  "name": "rdmsaude-front",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "build:prod": "ng build --configuration=production",
+    "prepare:docker": "npm run build:prod && echo 'Arquivos Docker prontos para envio.'",
+    "zip:deploy": "npm run build:prod && zip -r deploy.zip . -x \"node_modules/*\" \"dist/*\" \".git/*\" \"*.zip\""
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": true,
+    "overrides": [
+      {
+        "files": "*.html",
+        "options": {
+          "parser": "angular"
+        }
+      }
+    ]
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^20.3.12",
+    "@angular/cdk": "^20.2.14",
+    "@angular/common": "^20.3.12",
+    "@angular/compiler": "^20.3.12",
+    "@angular/core": "^20.3.12",
+    "@angular/forms": "^20.3.12",
+    "@angular/material": "^20.2.14",
+    "@angular/platform-browser": "^20.3.12",
+    "@angular/platform-browser-dynamic": "^20.3.12",
+    "@angular/router": "^20.3.12",
+    "jwt-decode": "^4.0.0",
+    "material-icons": "^1.13.14",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^20.3.13",
+    "@angular/build": "^20.3.13",
+    "@angular/cli": "^20.3.12",
+    "@angular/compiler-cli": "^20.3.12",
+    "@types/jwt-decode": "^2.2.1",
+    "typescript": "5.8"
+  }
+}

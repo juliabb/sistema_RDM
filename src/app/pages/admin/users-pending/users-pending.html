@@ -1,0 +1,221 @@
+<!-- src/app/pages/admin/users-pending/users-pending.html -->
+<div class="users-pending-container container-content-dashboard">
+  <!-- Cabeçalho com botão de atualizar -->
+  <div class="section-header">
+    <div class="header-row">
+      <div>
+        <h2><i class="fas fa-user-clock"></i> Usuários Pendentes</h2>
+        <p>Aprovar ou rejeitar solicitações de cadastro</p>
+      </div>
+      <button class="btn btn-secondary" (click)="refreshData()" [disabled]="isLoading" title="Atualizar lista">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i> Atualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Mensagem de erro -->
+  @if (errorMessage) {
+  <div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i> {{ errorMessage }}
+  </div>
+  }
+
+  <!-- Barra de busca -->
+  <div class="search-bar">
+    <div class="search-wrapper">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchUsers()"
+        placeholder="Buscar por nome ou email" class="search-input">
+    </div>
+    <div class="search-info">
+      <i class="fas fa-users"></i> {{ filteredUsers.length }} usuário(s) encontrado(s)
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  @if (isLoading) {
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Carregando usuários pendentes...</p>
+  </div>
+  } @else {
+  <!-- Tabela de usuários -->
+  <div class="table-container">
+    <table class="users-pending-table">
+      <thead>
+        <tr>
+          <th>Nome Completo</th>
+          <th>Email</th>
+          <th>Situação</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Lista de usuários -->
+        @for (user of filteredUsers; track user.email) {
+        <tr>
+          <td>
+            <div class="user-info">
+              <div class="user-avatar">
+                {{ user.name.charAt(0).toUpperCase() }}
+              </div>
+              <div class="user-main">
+                <span class="user-name">{{ user.name }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="email-cell">
+              <i class="fas fa-envelope"></i>
+              {{ user.email }}
+            </div>
+          </td>
+          <td>
+            <span class="status-badge" [class]="getSituationClass(user.situation)">
+              <i class="fas fa-circle"></i>
+              {{ user.situation || 'Pendente' }}
+            </span>
+          </td>
+          <td class="actions">
+            <div class="action-buttons">
+              <button class="btn btn-info btn-sm" (click)="viewUserDetails(user.email)" title="Ver detalhes do usuário">
+                <i class="fas fa-eye"></i> Ver mais
+              </button>
+              <button class="btn btn-success btn-sm" (click)="openApproveModal(user)" title="Aprovar usuário">
+                <i class="fas fa-check"></i> Aprovar
+              </button>
+              <button class="btn btn-danger btn-sm" (click)="openRejectModal(user)" title="Rejeitar usuário">
+                <i class="fas fa-times"></i> Reprovar
+              </button>
+            </div>
+          </td>
+        </tr>
+        }
+
+        <!-- Estado vazio -->
+        @empty {
+        <tr>
+          <td colspan="4" class="empty-message">
+            <div class="empty-state">
+              <mat-icon class="empty-icon">mark_email_read</mat-icon>
+              <h3> Nenhum usuário pendente!</h3>
+              <p>Todos os usuários foram processados.</p>
+              <button class="btn btn-primary" (click)="refreshData()">
+                <i class="fas fa-sync-alt"></i> Recarregar
+              </button>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  }
+
+  <!-- MODAL -->
+  <app-modal [visible]="showModal" [title]="modalTitle" [size]="'medium'" [allowScroll]="true"
+    [closeOnClickOutside]="!isChangingStatus" [closeOnEscape]="!isChangingStatus" (closed)="closeModal()">
+
+    @if (selectedUser) {
+    <div class="user-management-modal">
+      <!-- Informações do usuário -->
+      <div class="user-info-card">
+        <div class="user-avatar-large">
+          {{ selectedUser.name.charAt(0).toUpperCase() }}
+        </div>
+        <div class="user-details">
+          <h3>{{ selectedUser.name }}</h3>
+          <p class="user-email">{{ selectedUser.email }}</p>
+          <div class="user-info-grid">
+            <div class="info-item">
+              <span class="info-label">Departamento:</span>
+              <span class="info-value">{{ selectedUser.department }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Perfil:</span>
+              <span class="role-badge" [class]="getRoleClass(selectedUser.role)">
+                {{ formatRole(selectedUser.role) }}
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Status:</span>
+              <span class="status-badge" [class]="getSituationClass(selectedUser.situation)">
+                {{ selectedUser.situation }}
+              </span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Cadastro:</span>
+              <span class="info-value">{{ selectedUser.registrationDate || 'N/A' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Divisor -->
+      <div class="modal-divider"></div>
+
+      <!-- Conteúdo do modal (apenas status) -->
+      <div class="form-section">
+        <h4>Alterar Status do Usuário</h4>
+
+        @if (changeStatusError) {
+        <div class="alert alert-danger">
+          {{ changeStatusError }}
+        </div>
+        }
+
+        @if (changeStatusSuccess) {
+        <div class="alert alert-success">
+          <strong>Sucesso!</strong> Status alterado com sucesso.
+        </div>
+        }
+
+        <!-- Seleção do novo status -->
+        <div class="form-group">
+          <label class="form-label">Novo Status</label>
+          <select title="Novo Status" class="form-control" [(ngModel)]="selectedStatus" [disabled]="isChangingStatus">
+            @for (option of modalStatusOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+            }
+          </select>
+          <small class="form-text">
+            Selecione o novo status para este usuário.
+          </small>
+        </div>
+
+        <!-- Informações sobre os status -->
+        <div class="status-info">
+          <h5>Sobre os Status:</h5>
+          <ul>
+            <li>
+              <strong>Aprovado:</strong> Usuário ativo com acesso completo ao sistema.
+            </li>
+            <li>
+              <strong>Reprovado:</strong> Usuário inativo/suspenso, sem acesso ao sistema.
+            </li>
+            <li class="text-muted">
+              <strong>Pendente (atual):</strong> Aguardando aprovação.
+            </li>
+          </ul>
+        </div>
+
+        <!-- Botão de ação -->
+        <div class="form-actions">
+          <button class="btn btn-primary" (click)="changeUserStatus()"
+            [disabled]="isChangingStatus || !selectedStatus || selectedStatus === selectedUser.situation">
+            @if (isChangingStatus) {
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Processando...
+            } @else {
+            Confirmar Alteração
+            }
+          </button>
+          <button class="btn btn-secondary ms-2" (click)="closeModal()" [disabled]="isChangingStatus">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+    }
+  </app-modal>
+</div>

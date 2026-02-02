@@ -1,0 +1,490 @@
+/* src\app\pages\admin\rdm-list\rdm-list.css */
+
+.approved-rdm-container {
+  padding: var(--spacing-lg);
+  background: var(--gray-50);
+  min-height: 100%;
+}
+
+.section-header {
+  margin-bottom: var(--spacing-xl);
+}
+
+.section-header h2 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.section-header p {
+  margin: var(--spacing-xs) 0 0 0;
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+}
+
+/* Filtros */
+.filters-section {
+  background: var(--white);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.filter-group label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-700);
+}
+
+.filter-input {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  font-family: inherit;
+  background: var(--white);
+  color: var(--gray-800);
+  transition: all var(--transition-fast);
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: var(--primary-700);
+  box-shadow: 0 0 0 3px rgba(80, 8, 120, 0.1);
+}
+
+.filter-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  justify-content: flex-end;
+}
+
+/* Botões */
+.btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.btn-sm {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-xs);
+  min-width: 100px;
+}
+
+.btn-primary {
+  background: var(--primary-700);
+  color: var(--white);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-800);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--gray-600);
+  color: var(--white);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gray-700);
+  transform: translateY(-1px);
+}
+
+.btn-info {
+  background: var(--info-color);
+  color: var(--white);
+}
+
+.btn-info:hover:not(:disabled) {
+  background: var(--info-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-success {
+  background: var(--success-color);
+  color: var(--white);
+}
+
+.btn-success:hover:not(:disabled) {
+  background: var(--success-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-danger {
+  background: var(--error-color);
+  color: var(--white);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--error-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Estatísticas */
+.stats-bar {
+  display: flex;
+  gap: var(--spacing-xl);
+  background: var(--white);
+  padding: var(--spacing-lg);
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-200);
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  font-weight: var(--font-weight-medium);
+}
+
+.stat-value {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-700);
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: var(--spacing-xxl) var(--spacing-lg);
+  color: var(--gray-600);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--gray-200);
+  border-top: 3px solid var(--primary-700);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Tabela */
+.table-container {
+  overflow-x: auto;
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--gray-200);
+  margin-bottom: var(--spacing-lg);
+}
+
+.approved-rdm-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+.approved-rdm-table th {
+  background: var(--gray-50);
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  color: var(--gray-700);
+  border-bottom: 2px solid var(--gray-300);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.approved-rdm-table td {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--gray-200);
+  vertical-align: middle;
+  font-size: var(--font-size-sm);
+}
+
+.approved-rdm-table tr:hover {
+  background-color: var(--gray-50);
+}
+
+.approved-rdm-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Cabeçalho sortable */
+.sortable {
+  cursor: pointer;
+  position: relative;
+  padding-right: var(--spacing-lg);
+}
+
+.sort-icon {
+  position: absolute;
+  right: var(--spacing-xs);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-size-xs);
+}
+
+/* Ticket */
+.ticket-number {
+  font-weight: var(--font-weight-semibold);
+}
+
+.ticket-badge {
+  display: inline-block;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--primary-100);
+  color: var(--primary-700);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-mono);
+}
+
+/* Título */
+.rdm-title {
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gray-800);
+}
+
+/* ============================================
+ STATUS BADGES
+   ============================================ */
+
+/* Estilo base para todos os badges */
+.status-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  border: 1px solid transparent;
+  min-width: 85px; /* Garante tamanho consistente */
+  justify-content: center; /* Centraliza texto */
+  text-align: center;
+}
+
+/* APROVADO */
+.status-badge.approved {
+  background: var(--status-approved-bg);
+  color: var(--status-approved-text);
+  border-color: var(--success-color);
+}
+
+/* CONCLUÍDO */
+.status-badge.completed {
+  background: var(--success-light);
+  color: var(--success-dark);
+  border-color: var(--success-color);
+}
+
+/* EM ANÁLISE/EXECUÇÃO */
+.status-badge.execution,
+.status-badge.analysis {
+  background: var(--status-analysis-bg);
+  color: var(--status-analysis-text);
+  border-color: var(--info-color);
+}
+
+/* CANCELADO */
+.status-badge.cancelled {
+  background: var(--status-rejected-bg);
+  color: var(--status-rejected-text);
+  border-color: var(--error-color);
+}
+
+/* REPROVADO */
+.status-badge.rejected {
+  background: var(--status-rejected-bg);
+  color: var(--status-rejected-text);
+  border-color: var(--error-color);
+}
+
+/* PENDENTE */
+.status-badge.pending {
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
+  border-color: var(--warning-color);
+}
+
+/* Ações */
+.actions {
+  min-width: 200px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+/* Mensagem vazia */
+.empty-message {
+  text-align: center;
+  padding: var(--spacing-xxl) var(--spacing-lg) !important;
+  color: var(--gray-600);
+}
+
+.empty-message h3 {
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--gray-900);
+  font-size: var(--font-size-lg);
+}
+
+.empty-message p {
+  margin: 0;
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+}
+
+/* Paginação */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+.btn-pagination {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  min-width: 40px;
+  background: var(--white);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  font-weight: var(--font-weight-medium);
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background: var(--gray-100);
+  border-color: var(--primary-700);
+  color: var(--primary-700);
+}
+
+.btn-pagination.active {
+  background: var(--primary-700);
+  color: var(--white);
+  border-color: var(--primary-700);
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .approved-rdm-container {
+    padding: var(--spacing-md);
+  }
+
+  .section-header h2 {
+    font-size: var(--font-size-xl);
+  }
+
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-actions {
+    flex-direction: column;
+  }
+
+  .filter-actions .btn {
+    width: 100%;
+  }
+
+  .stats-bar {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .action-buttons .btn {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .approved-rdm-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 480px) {
+  .approved-rdm-table {
+    min-width: 700px;
+  }
+
+  .ticket-badge {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .btn-sm {
+    min-width: 80px;
+    font-size: 11px;
+  }
+}

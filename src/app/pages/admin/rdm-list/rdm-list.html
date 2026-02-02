@@ -1,0 +1,167 @@
+<!-- src\app\pages\admin\rdm-list\rdm-list.html -->
+<div class="approved-rdm-container container-content-dashboard">
+  <div class="section-header">
+    <h2>Gestão de RDMs</h2>
+    <p>Visualize e gerencie todas as Requisições de Mudança (RDM)</p>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-section card">
+    <div class="filters-grid">
+      <!-- Busca -->
+      <div class="filter-group">
+        <label for="search">Buscar:</label>
+        <input type="text" id="search" [(ngModel)]="searchTerm" (ngModelChange)="onSearchChange()"
+          placeholder="Ticket, solicitante, título..." class="filter-input">
+      </div>
+
+      <!-- Status -->
+      <div class="filter-group">
+        <label for="status">Status:</label>
+        <select id="status" [(ngModel)]="statusFilter" (ngModelChange)="onFilterChange()" class="filter-input">
+          <option value="">Todos os status</option>
+          @for (status of uniqueStatuses; track status) {
+          <option [value]="status">{{ status }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-actions">
+      <button class="btn btn-secondary" (click)="clearFilters()" [disabled]="isLoading">
+        Limpar filtros
+      </button>
+      <button class="btn btn-primary" (click)="loadRDM()" [disabled]="isLoading">
+        Aplicar
+      </button>
+    </div>
+  </div>
+
+  <!-- Estatísticas -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span class="stat-label">Total:</span>
+      <span class="stat-value">{{ totalItems }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Mostrando:</span>
+      <span class="stat-value">{{ filteredRDM.length }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Página:</span>
+      <span class="stat-value">{{ currentPage }} de {{ totalPages }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Status:</span>
+      <span class="stat-value">{{ statusFilter || 'Todos' }}</span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  @if (isLoading) {
+  <div class="loading">
+    <div class="spinner"></div>
+    <p>Carregando RDMs...</p>
+  </div>
+  } @else {
+  <!-- Tabela -->
+  <div class="table-container">
+    <table class="approved-rdm-table">
+      <thead>
+        <tr>
+          <th (click)="changeSort('ticket')" class="sortable">
+            Ticket
+            @if (sortBy === 'ticket') {
+            <span class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            }
+          </th>
+          <th (click)="changeSort('name')" class="sortable">
+            Solicitante
+            @if (sortBy === 'name') {
+            <span class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            }
+          </th>
+          <th (click)="changeSort('title')" class="sortable">
+            Título
+            @if (sortBy === 'title') {
+            <span class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            }
+          </th>
+          <th>
+            Data Solicitação
+          </th>
+          <th (click)="changeSort('status')" class="sortable">
+            Status
+            @if (sortBy === 'status') {
+            <span class="sort-icon">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+            }
+          </th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (rdm of filteredRDM; track rdm.ticket) {
+        <tr>
+          <td class="ticket-number">
+            <span class="ticket-badge">{{ rdm.ticket }}</span>
+          </td>
+          <td>{{ rdm.name }}</td>
+          <td class="rdm-title" [title]="rdm.title">{{ (rdm.title || '').slice(0, 50) }}{{ (rdm.title || '').length > 50
+            ? '...' : '' }}</td>
+          <td>{{ formatDate(rdm.date) }}</td>
+          <td>
+         <span class="status-badge" [ngClass]="getStatusClass(rdm.status)">
+    {{ rdm.status || 'N/A' }}
+  </span>
+          </td>
+          <td class="actions">
+            <div class="action-buttons">
+              <button class="btn btn-sm btn-info" (click)="viewFullRDMDetails(rdm.ticket)"
+                title="Ver detalhes completos">
+                Ver Completo
+              </button>
+
+              <button class="btn btn-sm btn-primary" (click)="downloadRDM(rdm.ticket)"
+                [disabled]="downloadingPDF === rdm.ticket" title="Baixar PDF">
+                {{ downloadingPDF === rdm.ticket ? 'Baixando...' : 'Baixar PDF' }}
+              </button>
+            </div>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="8" class="empty-message">
+            <div>
+              <h3>Nenhuma RDM encontrada</h3>
+              <p>Tente alterar os filtros ou cadastrar uma nova RDM.</p>
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação -->
+  @if (totalPages > 1) {
+  <div class="pagination">
+    <button class="btn btn-pagination" [disabled]="!canGoPrevious || isLoading" (click)="changePage(currentPage - 1)"
+      title="Página anterior">
+      ← Anterior
+    </button>
+
+    @for (page of pages; track page) {
+    <button class="btn btn-pagination" [class.active]="currentPage === page" (click)="changePage(page)"
+      [disabled]="isLoading" [title]="'Ir para página ' + page">
+      {{ page }}
+    </button>
+    }
+
+    <button class="btn btn-pagination" [disabled]="!canGoNext || isLoading" (click)="changePage(currentPage + 1)"
+      title="Próxima página">
+      Próxima →
+    </button>
+  </div>
+  }
+  }
+</div>

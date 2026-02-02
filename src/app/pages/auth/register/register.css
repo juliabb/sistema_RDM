@@ -1,0 +1,156 @@
+/* Estilos do formulário */
+.button-group {
+  display: flex;
+  justify-content: space-around;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+}
+
+.button-group .btn-primary {
+  margin-bottom: 0 !important;
+}
+
+.button-group .btn-secondary {
+  margin-bottom: 0 !important;
+}
+
+.btn-register {
+  height: 60px !important;
+  width: 50% !important;
+}
+
+/* Estilos para o conteúdo do modal de sucesso */
+.modal-success-content {
+  text-align: center;
+  padding: var(--spacing-md);
+}
+
+.modal-success-icon {
+  font-size: 48px;
+  color: var(--success-color);
+  margin-bottom: var(--spacing-md);
+  display: block;
+}
+
+.modal-success-message {
+  margin-bottom: var(--spacing-sm);
+  color: var(--gray-700);
+  line-height: 1.5;
+  font-size: 15px;
+}
+
+.modal-success-message:last-child {
+  margin-bottom: 0;
+}
+
+/* Estilos para o spinner de loading no botão */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--white);
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Estilos de compatibilidade */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content-old {
+  background: var(--white);
+  border-radius: var(--border-radius-lg);
+  padding: var(--spacing-xxl);
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+@media (max-width: 768px) {
+  .button-group {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .btn-register {
+    width: 100% !important;
+    height: 50px !important;
+  }
+
+  .modal-success-icon {
+    font-size: 40px;
+  }
+
+  .modal-success-message {
+    font-size: 14px;
+  }
+}
+
+/* Botões */
+.btn-primary {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--primary-700);
+  color: var(--white);
+  border: none;
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: var(--spacing-md);
+}
+
+.btn-secondary {
+  width: 100%;
+  padding: var(--spacing-md);
+  background: var(--white);
+  color: var(--primary-700);
+  border: 2px solid var(--primary-700);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-800);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--primary-100);
+  color: var(--secondary-dark);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+

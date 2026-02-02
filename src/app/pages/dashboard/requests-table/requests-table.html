@@ -1,0 +1,231 @@
+<!-- src/app/pages/dashboard/requests-table/requests-table.html -->
+<div class="requests-container">
+  <div class="requests-header">
+    <div class="header-content">
+      <h2>Minhas Solicitações RDM</h2>
+      <button type="button" class="btn btn-refresh" (click)="refreshRequests()" [disabled]="isLoading"
+        title="Atualizar lista de solicitações">
+        <i class="fas" [class.fa-sync]="!isLoading" [class.fa-spinner]="isLoading" [class.fa-spin]="isLoading"
+          aria-hidden="true"></i>
+        <span class="btn-text">Atualizar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros de busca -->
+  <div class="filters-container">
+    <div class="filter-row">
+      <!-- Filtro de busca por ticket/título -->
+      <div class="filter-group">
+        <label for="searchFilter" class="filter-label">
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <span class="sr-only">Buscar por</span>
+        </label>
+        <input type="text" id="searchFilter" class="filter-input" placeholder="Buscar por ticket ou título..."
+          [(ngModel)]="searchTerm" (input)="onSearch()" [disabled]="isLoading"
+          aria-label="Buscar solicitações por número do ticket ou título" />
+        @if (searchTerm) {
+        <button type="button" class="filter-clear-btn" (click)="clearSearch()" aria-label="Limpar busca"
+          title="Limpar busca">
+          <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+        }
+      </div>
+
+      <!-- Filtro de status -->
+      <div class="filter-group">
+        <label for="statusFilter" class="filter-label">
+          <i class="fas fa-filter" aria-hidden="true"></i>
+          <span class="filter-label-text">Status:</span>
+        </label>
+        <select id="statusFilter" class="filter-select" [(ngModel)]="statusFilter" (change)="onStatusChange()"
+          [disabled]="isLoading" aria-label="Filtrar solicitações por status">
+          <option value="">Todos os status</option>
+          <option value="pendente">Pendente</option>
+          <option value="aprovado">Aprovado</option>
+          <option value="reprovado">Reprovado</option>
+        </select>
+      </div>
+
+      <!-- Botão para limpar todos os filtros -->
+      <button type="button" class="btn btn-secondary btn-clear-filters" (click)="clearFilters()"
+        [disabled]="isLoading || (!searchTerm && !statusFilter)" title="Limpar todos os filtros">
+        <i class="fas fa-times-circle" aria-hidden="true"></i>
+        <span class="btn-text">Limpar Filtros</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Notificação de erro no download -->
+  @if (downloadError) {
+  <div class="notification notification-error" role="alert" aria-live="assertive">
+    <div class="notification-content">
+      <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+      <span id="download-error-message">{{ downloadError }}</span>
+    </div>
+    <button type="button" class="notification-close" (click)="downloadError = ''" title="Fechar notificação de erro"
+      aria-label="Fechar notificação" aria-describedby="download-error-message">
+      <i class="fas fa-times" aria-hidden="true"></i>
+      <span class="sr-only">Fechar</span>
+    </button>
+  </div>
+  }
+
+  <!-- Estados de carregamento -->
+  @if (isLoading) {
+  <div class="loading-container" role="status" aria-live="polite">
+    <div class="spinner" aria-hidden="true"></div>
+    <p>Carregando solicitações...</p>
+  </div>
+  }
+
+  @if (errorMessage) {
+  <div class="error-container" role="alert" aria-live="assertive">
+    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+    <p>{{ errorMessage }}</p>
+    <button type="button" class="btn btn-retry" (click)="loadRequests()" aria-label="Tentar carregar novamente">
+      Tentar Novamente
+    </button>
+  </div>
+  }
+
+  @if (isEmpty && (searchTerm || statusFilter)) {
+  <div class="empty-container" role="status">
+    <i class="fas fa-search" aria-hidden="true"></i>
+    <h3>Nenhuma solicitação encontrada</h3>
+    <p>Não foram encontradas solicitações com os filtros aplicados.</p>
+    <button type="button" class="btn btn-secondary" (click)="clearFilters()">
+      Limpar Filtros
+    </button>
+  </div>
+  }
+
+  @if (isEmpty && !searchTerm && !statusFilter) {
+  <div class="empty-container" role="status">
+    <i class="fas fa-inbox" aria-hidden="true"></i>
+    <h3>Nenhuma solicitação encontrada</h3>
+    <p>Você ainda não possui solicitações RDM registradas.</p>
+  </div>
+  }
+
+  <!-- Tabela de solicitações -->
+  @if (hasRequests && !isLoading) {
+  <div class="table-wrapper">
+    <div class="table-info">
+      <span class="items-count" role="status" aria-live="polite">
+        Exibindo {{ getItemRange() }} solicitações
+        @if (searchTerm || statusFilter) {
+        <span class="filter-info">
+          (filtradas de {{ totalItemsOriginal }})
+        </span>
+        }
+      </span>
+    </div>
+
+    <div class="table-container">
+      <table class="requests-table" role="table" aria-label="Tabela de solicitações RDM">
+        <thead>
+          <tr>
+            <th scope="col" class="col-ticket">Ticket</th>
+            <th scope="col" class="col-title">Título</th>
+            <th scope="col" class="col-date">Data</th>
+            <th scope="col" class="col-status">Status</th>
+            <th scope="col" class="col-actions">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (request of filteredRequests; track request.ticket; let i = $index) {
+          <tr [class.row-even]="i % 2 === 0" [class.row-odd]="i % 2 !== 0">
+            <td class="ticket-cell">
+              <span class="ticket-badge">{{ request.ticket }}</span>
+            </td>
+            <td class="title-cell" title="{{ request.title }}">
+              <span class="title-text">{{ request.title }}</span>
+            </td>
+            <td class="date-cell">
+              {{ formatDate(request.date || request.createdAt) }}
+            </td>
+            <td class="status-cell">
+              <span class="status-badge {{ getStatusClass(request.status) }}">
+                {{ getStatusLabel(request.status) }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <div class="actions-buttons">
+                <!-- Botão VER -->
+                <button type="button" class="btn btn-secondary btn-action" (click)="viewRequest(request)"
+                  [disabled]="downloadingPDF" [attr.aria-label]="'Ver detalhes da solicitação ' + request.ticket"
+                  title="Ver detalhes">
+                  <i class="fas fa-eye" aria-hidden="true"></i>
+                  <span class="btn-text">Ver</span>
+                </button>
+
+                <!-- Botão EDITAR (apenas para solicitações pendentes) -->
+                @if (canEditRequest(request)) {
+                <button type="button" class="btn btn-primary btn-action" (click)="editRequest(request)"
+                  [disabled]="downloadingPDF" [attr.aria-label]="'Editar solicitação ' + request.ticket"
+                  title="Editar solicitação">
+                  <i class="fas fa-edit" aria-hidden="true"></i>
+                  <span class="btn-text">Editar</span>
+                </button>
+                }
+
+                <!-- Botão PDF -->
+                <button type="button" class="btn btn-danger btn-action" (click)="downloadPDF(request)"
+                  [disabled]="downloadingPDF" [attr.aria-label]="'Baixar PDF da solicitação ' + request.ticket"
+                  title="Baixar PDF">
+                  <i class="fas" [class.fa-file-pdf]="!downloadingPDF" [class.fa-spinner]="downloadingPDF"
+                    [class.fa-spin]="downloadingPDF" aria-hidden="true"></i>
+                  <span class="btn-text">{{ downloadingPDF ? '...' : 'PDF' }}</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginação -->
+    @if (showPagination) {
+    <nav class="pagination-container" aria-label="Navegação de páginas">
+      <div class="pagination-info" aria-live="polite">
+        Página {{ currentPage }} de {{ totalPages }}
+      </div>
+
+      <div class="pagination-controls">
+        <button type="button" class="pagination-btn" (click)="goToPage(1)" [disabled]="currentPage === 1"
+          aria-label="Ir para primeira página" title="Primeira página">
+          <i class="fas fa-angle-double-left" aria-hidden="true"></i>
+        </button>
+
+        <button type="button" class="pagination-btn" (click)="previousPage()" [disabled]="!hasPreviousPage()"
+          aria-label="Ir para página anterior" title="Página anterior">
+          <i class="fas fa-angle-left" aria-hidden="true"></i>
+        </button>
+
+        <div class="pagination-numbers" role="group" aria-label="Páginas disponíveis">
+          @for (page of getPageNumbers(); track page) {
+          <button type="button" class="pagination-number" [class.active]="page === currentPage"
+            [attr.aria-label]="'Ir para página ' + page" [attr.aria-current]="page === currentPage ? 'page' : null"
+            (click)="goToPage(page)">
+            {{ page }}
+          </button>
+          }
+        </div>
+
+        <button type="button" class="pagination-btn" (click)="nextPage()" [disabled]="!hasNextPage()"
+          aria-label="Ir para próxima página" title="Próxima página">
+          <i class="fas fa-angle-right" aria-hidden="true"></i>
+        </button>
+
+        <button type="button" class="pagination-btn" (click)="goToPage(totalPages)"
+          [disabled]="currentPage === totalPages" aria-label="Ir para última página" title="Última página">
+          <i class="fas fa-angle-double-right" aria-hidden="true"></i>
+        </button>
+      </div>
+    </nav>
+    }
+  </div>
+  }
+</div>

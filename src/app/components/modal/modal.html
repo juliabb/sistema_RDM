@@ -1,0 +1,35 @@
+<!-- src/app/components/modal/modal.html -->
+@if (visible) {
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-content" [class.modal-sm]="size === 'small'" [class.modal-lg]="size === 'large'"
+    [class.modal-xl]="size === 'xlarge'" [class.no-scroll]="!allowScroll" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>
+
+        <mat-icon class="modal-title-icon">info</mat-icon>
+        {{ title }}
+      </h3>
+
+      @if (showCloseButton) {
+      <button class="modal-close" (click)="onClose()" aria-label="Fechar" type="button">
+        <mat-icon>close</mat-icon>
+      </button>
+      }
+    </div>
+
+    <div class="modal-body">
+      <ng-content></ng-content>
+    </div>
+
+    @if (showFooter) {
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="onClose()">
+        <mat-icon>check</mat-icon>
+        {{ buttonText }}
+      </button>
+    </div>
+    }
+  </div>
+</div>
+}

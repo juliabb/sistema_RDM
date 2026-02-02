@@ -1,0 +1,90 @@
+/* src/app/pages/admin/dashboard-admin/dashboard-admin.css */
+.admin-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.admin-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-content-area {
+  flex: 1;
+  padding: 2rem;
+  background: #f8f9fa;
+  min-height: calc(100vh - 80px);
+}
+
+/* Estilos para mensagens */
+.access-denied {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.access-denied .denied-icon,
+.access-denied .login-icon {
+  font-size: 64px;
+  height: 64px;
+  width: 64px;
+  margin-bottom: 1.5rem;
+}
+
+.access-denied .denied-icon {
+  color: #dc3545;
+}
+
+.access-denied .login-icon {
+  color: #6c757d;
+}
+
+.access-denied h2 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.access-denied p {
+  color: #718096;
+  margin-bottom: 1.5rem;
+}
+
+.access-denied .btn {
+  margin-top: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Tabs fallback (opcional) */
+.tabs-fallback {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.welcome-message mat-icon {
+  font-size: 64px;
+  height: 64px;
+  width: 64px;
+  color: #4361ee;
+  margin-bottom: 1.5rem;
+}
+
+.welcome-message h2 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.welcome-message p {
+  color: #718096;
+  font-size: 1.1rem;
+}

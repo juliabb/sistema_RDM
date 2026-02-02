@@ -1,0 +1,88 @@
+<header class="header">
+  <div class="logo-link" (click)="navigateToHome()" [class.disabled]="!isLoggedIn">
+    <img src="img/logo-prodesp-branco.svg" alt="Prodesp RDM" class="logo">
+  </div>
+
+  @if (isLoggedIn) {
+  <div class="header-title">Sistema requisição de mudança - RDM</div>
+  }
+
+  @if (isLoggedIn) {
+  <div class="user-menu-container" [class.show-menu]="showUserMenu">
+    <div class="user-info" (click)="toggleUserMenu($event)">
+      <div class="user-avatar">
+        @if (userInitials) {
+        {{ userInitials }}
+        } @else {
+        <mat-icon>person</mat-icon>
+        }
+      </div>
+      <div class="user-details">
+        <div class="user-name">{{ userName }}</div>
+        <div class="user-email">{{ userEmail }}</div>
+      </div>
+      <mat-icon class="dropdown-arrow">arrow_drop_down</mat-icon>
+    </div>
+
+    @if (showUserMenu) {
+    <div class="user-dropdown">
+      <div class="dropdown-header">
+        <div class="dropdown-avatar">
+          @if (userInitials) {
+          {{ userInitials }}
+          } @else {
+          <mat-icon>person</mat-icon>
+          }
+        </div>
+        <div class="dropdown-user-info">
+          <strong>{{ userName }}</strong>
+          <small>{{ userEmail }}</small>
+
+          <!-- Mostrar role apenas se for administrador -->
+          @if (shouldShowRole()) {
+          <div class="user-role">
+            <mat-icon class="role-icon">admin_panel_settings</mat-icon>
+            {{ userRole }}
+          </div>
+          }
+        </div>
+      </div>
+
+      <div class="dropdown-divider"></div>
+
+      <div class="dropdown-item" (click)="navigateToChangePassword()">
+        <mat-icon class="menu-icon">lock</mat-icon>
+        <span>Alterar Senha</span>
+      </div>
+
+      <div class="dropdown-item" (click)="navigateToHome()">
+        <mat-icon class="menu-icon">space_dashboard</mat-icon>
+
+        <span class="logout-text">Voltar ao Dashboard</span>
+      </div>
+
+      @if (isUserAdmin) {
+      <div class="dropdown-item" (click)="navigateToDashboardAdmin()">
+        <mat-icon class="menu-icon">admin_panel_settings</mat-icon>
+        <span>Painel Admin</span>
+      </div>
+      }
+
+      <div class="dropdown-divider"></div>
+
+      <div class="dropdown-item logout" (click)="logout()">
+        <mat-icon class="menu-icon">logout</mat-icon>
+        <span>Sair</span>
+      </div>
+    </div>
+    }
+  </div>
+  }
+
+  @if (!isLoggedIn) {
+  <div class="guest-text">
+    <mat-icon class="guest-icon">person_off</mat-icon>
+    Convidado
+  </div>
+  }
+</header>

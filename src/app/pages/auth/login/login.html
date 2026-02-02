@@ -1,0 +1,55 @@
+<form [formGroup]="loginForm" (ngSubmit)="onLoginSubmit()" class="auth-form">
+  <h2>Entrar na sua conta</h2>
+
+  @if (sessionExpired) {
+  <div class="session-expired-message">
+    ⚠️ Sua sessão expirada. Por favor, faça login novamente.
+  </div>
+  }
+
+  @if (errorMessage && !sessionExpired) {
+  <div class="error-message">{{ errorMessage }}</div>
+  }
+
+  @if (successMessage) {
+  <div class="success-message">{{ successMessage }}</div>
+  }
+
+  <div class="input-group">
+    <input type="email" placeholder="Digite seu email" formControlName="email"
+      [class.error]="hasError('email', 'required') || hasError('email', 'email')" />
+
+    @if (hasError('email', 'required')) {
+    <div class="field-error">Email é obrigatório</div>
+    }
+    @if (hasError('email', 'email')) {
+    <div class="field-error">Por favor, insira um email válido</div>
+    }
+  </div>
+
+  <div class="input-group">
+    <input type="password" placeholder="Digite sua senha" formControlName="password"
+      [class.error]="hasError('password', 'required') || hasError('password', 'minlength')" />
+
+    @if (hasError('password', 'required')) {
+    <div class="field-error">Senha é obrigatória</div>
+    }
+    @if (hasError('password', 'minlength')) {
+    <div class="field-error">Senha deve ter pelo menos 6 caracteres</div>
+    }
+  </div>
+
+  <button type="submit" class="btn-primary" [disabled]="isLoading || loginForm.invalid">
+    @if (!isLoading) {
+    Entrar
+    } @else {
+    <span class="spinner"></span> Carregando...
+    }
+  </button>
+
+  <button type="button" class="btn-secondary" (click)="toggleMode.emit()" [disabled]="isLoading">
+    Criar conta
+  </button>
+
+
+</form>
