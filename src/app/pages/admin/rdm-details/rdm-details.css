@@ -15,8 +15,8 @@
 
 /* Quando é admin view (com menu lateral) */
 .rdm-details-container.admin-view {
-  margin-left: 280px;
-  width: calc(100% - 280px);
+  margin-left: 6vw;
+  width: calc(100% - 150px);
   max-width: none;
 }
 
@@ -35,10 +35,19 @@
   background: var(--white);
   border-bottom: 2px solid var(--primary-700);
   padding: var(--spacing-lg) var(--spacing-xl);
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  position: relative; /* padrão: não fixo */
+  top: auto;
+  z-index: auto;
   box-shadow: var(--shadow-sm);
+  margin-bottom: var(--rdm-header-gap);
+  margin-top: 0;
+}
+
+/* Modo admin: cabeçalho interno fixo abaixo do header global */
+.rdm-details-container.admin-view .document-header {
+  position: sticky;
+  top: var(--app-header-height);
+  z-index: 996;
 }
 
 .header-actions {
@@ -53,10 +62,10 @@
 }
 
 /* ============================================
-   BOTÕES - ESTILOS GERAIS
+   BOTÕES – PADRÃO (ESCOPO PARA NÃO CONFLITAR)
    ============================================ */
 
-.btn {
+.rdm-details-container .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -66,167 +75,171 @@
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--transition-base);
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   min-width: 140px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
   position: relative;
   overflow: hidden;
-  color: var(--white) !important;
+
+  /* Visual */
+  color: #f4f4f5;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+
+  /* Interação */
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+
+  outline: none;
 }
 
-/* Efeito hover para todos os botões */
-.btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+/* Hover/active padronizados */
+.rdm-details-container .btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.14);
 }
 
-/* Efeito active para todos os botões */
-.btn:active:not(:disabled) {
+.rdm-details-container .btn:active:not(:disabled) {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* Estado desabilitado para todos os botões */
-.btn:disabled {
+/* Estado desabilitado */
+.rdm-details-container .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
   box-shadow: none !important;
 }
 
+/* Foco acessível */
+.rdm-details-container .btn:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Botão de aviso e cancelar */
+.btn-warning {
+  background-color: #f0ad4e !important;
+}
+.btn-warning:hover {
+  background-color: #ec971f;
+}
+
+.cancel-modal .confirmation-message {
+  text-align: center;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeeba;
+  border-radius: 6px;
+}
+
 /* ============================================
-   BOTÃO DE VOLTAR - ESTILO NEUTRO
+   BOTÃO DE VOLTAR – NEUTRO
    ============================================ */
 
-.btn-back {
+.rdm-details-container .btn-back {
   background: var(--gray-100);
-  color: var(--gray-700) !important;
+  color: var(--gray-800) !important;
   border-color: var(--gray-300);
   min-width: auto;
   box-shadow: none;
 }
 
-.btn-back:hover:not(:disabled) {
+.rdm-details-container .btn-back:hover:not(:disabled) {
   background: var(--gray-200);
-  color: var(--gray-800) !important;
+  color: var(--gray-900) !important;
   border-color: var(--gray-400);
   transform: translateX(-2px);
 }
 
 /* ============================================
-   BOTÃO PDF - COR PRIMÁRIA (ROXO)
+   BOTÃO PDF – PRIMARY (ROXO)
    ============================================ */
 
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
-  color: var(--white);
+.rdm-details-container .btn-primary {
+  background: var(--primary-600);
   border-color: var(--primary-700);
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-800) 100%);
+.rdm-details-container .btn-primary:hover:not(:disabled) {
+  background: var(--primary-700);
   border-color: var(--primary-800);
-  box-shadow: 0 6px 12px rgba(80, 8, 120, 0.25);
 }
 
-/* Efeito de brilho no hover do PDF */
-.btn-primary::before {
+/* Brilho sutil (mantém o efeito, mas discreto) */
+.rdm-details-container .btn-primary::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
+  left: -120%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
   transition: left 0.5s ease;
 }
 
-.btn-primary:hover:not(:disabled)::before {
-  left: 100%;
+.rdm-details-container .btn-primary:hover:not(:disabled)::before {
+  left: 120%;
 }
 
 /* ============================================
-   BOTÃO ANEXO - COR SECUNDÁRIA (VERDE)
+   BOTÃO ANEXO – SECONDARY (ROXO CLARO/OUTLINED)
    ============================================ */
 
-.btn-secondary {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  color: var(--white);
-  border-color: #10b981;
+.rdm-details-container .btn-secondary {
+  background: var(--primary-100);
+  color: var(--primary-800) !important;
+  border-color: var(--primary-300);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0da271 0%, #2abf8a 100%);
-  border-color: #0da271;
-  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.25);
-}
-
-/* Efeito de onda no clique do anexo */
-.btn-secondary::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.5);
-  opacity: 0;
-  border-radius: 100%;
-  transform: scale(1, 1) translate(-50%);
-  transform-origin: 50% 50%;
-}
-
-.btn-secondary:focus:not(:active)::after {
-  animation: ripple 1s ease-out;
-}
-
-@keyframes ripple {
-  0% {
-    transform: scale(0, 0);
-    opacity: 0.5;
-  }
-  20% {
-    transform: scale(25, 25);
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(40, 40);
-  }
+.rdm-details-container .btn-secondary:hover:not(:disabled) {
+  background: var(--primary-600);
+  color: var(--white) !important;
+  border-color: var(--primary-700);
 }
 
 /* ============================================
-   BOTÕES ADMIN - APROVAR (AZUL) E REJEITAR (VERMELHO)
+   BOTÃO APROVAR – SUCCESS (VERDE)
    ============================================ */
 
-.btn-success {
-  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-  color: var(--white);
-  border-color: #3b82f6;
+.rdm-details-container .btn-success {
+  background: var(--success-color);
+  border-color: var(--success-dark);
 }
 
-.btn-success:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb 0%, #4f86f9 100%);
-  border-color: #2563eb;
-  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.25);
+.rdm-details-container .btn-success:hover:not(:disabled) {
+  background: var(--success-dark);
 }
 
-.btn-danger {
-  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
-  color: var(--white);
-  border-color: #ef4444;
+/* ============================================
+   BOTÃO CORRIGIR – WARNING (LARANJA/ATENÇÃO)
+   ============================================ */
+
+.rdm-details-container .btn-edit {
+  background: var(--warning-color);
+  border-color: var(--warning-dark);
 }
 
-.btn-danger:hover:not(:disabled) {
-  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-  border-color: #dc2626;
-  box-shadow: 0 6px 12px rgba(239, 68, 68, 0.25);
+.rdm-details-container .btn-edit:hover:not(:disabled) {
+  background: var(--warning-dark);
+}
+
+/* ============================================
+   BOTÃO REJEITAR – DANGER (VERMELHO)
+   ============================================ */
+
+.rdm-details-container .btn-danger {
+  background: var(--error-color);
+  border-color: var(--error-dark);
+}
+
+.rdm-details-container .btn-danger:hover:not(:disabled) {
+  background: var(--error-dark);
 }
 
 /* ============================================
@@ -240,9 +253,17 @@
 
 .document-title h1 {
   margin: 0 0 var(--spacing-sm) 0;
-  color: var(--primary-800);
+  color: var(--title-dark);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
+}
+
+.document-subtitle {
+  margin-bottom: 8px;
+}
+
+.space-title {
+  margin-right: 0.5rem;
 }
 
 .document-meta {
@@ -270,47 +291,6 @@
 }
 
 /* ============================================
-   BADGES DE STATUS
-   ============================================ */
-
-.status-badge {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-pill);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-}
-
-.status-badge.pending {
-  background: var(--warning-light);
-  color: var(--warning-dark);
-}
-
-.status-badge.approved {
-  background: var(--success-light);
-  color: var(--success-dark);
-}
-
-.status-badge.rejected {
-  background: var(--error-light);
-  color: var(--error-dark);
-}
-
-.status-badge.completed {
-  background: var(--info-light);
-  color: var(--info-dark);
-}
-
-.status-badge.analysis {
-  background: var(--primary-100);
-  color: var(--primary-800);
-}
-
-.status-badge.cancelled {
-  background: var(--gray-200);
-  color: var(--gray-700);
-}
-
-/* ============================================
    CORPO DO DOCUMENTO
    ============================================ */
 
@@ -335,6 +315,7 @@
   max-width: calc(100% - 160px);
   margin-left: auto;
   margin-right: auto;
+  padding-top: var(--spacing-lg);
   padding-left: var(--spacing-xl);
   padding-right: var(--spacing-xl);
 }
@@ -346,6 +327,7 @@
 .document-section {
   margin-bottom: var(--spacing-xl);
   page-break-inside: avoid;
+  scroll-margin-top: calc(var(--app-header-height) + 120px);
 }
 
 .document-section:last-child {
@@ -363,13 +345,13 @@
 
 .section-header h2 {
   margin: 0;
-  color: var(--primary-800);
+  color: var(--title-dark);
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
 }
 
 .section-header mat-icon {
-  color: var(--primary-600);
+  color: var(--title-dark);
   font-size: var(--icon-size-lg) !important;
   width: var(--icon-size-lg) !important;
   height: var(--icon-size-lg) !important;
@@ -425,6 +407,8 @@
   min-height: 44px;
   display: flex;
   align-items: center;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .form-value.title {
@@ -438,6 +422,8 @@
   white-space: pre-wrap;
   line-height: 1.6;
   align-items: flex-start;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 /* ============================================
@@ -458,7 +444,7 @@
 
 .impact-alto,
 .urgency-alto {
-  color: var(--error-color);
+  color: #f87171;
   font-weight: var(--font-weight-semibold);
 }
 
@@ -538,7 +524,9 @@
   border-radius: var(--border-radius-lg);
   padding: var(--spacing-lg);
   background: var(--white);
-  transition: transform var(--transition-base), box-shadow var(--transition-base);
+  transition:
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
 }
 
 .planning-card:hover {
@@ -594,6 +582,12 @@
   min-height: 48px;
   display: flex;
   align-items: center;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.link {
+  color: var(--link-system);
 }
 
 .success-baixo {
@@ -607,11 +601,31 @@
 }
 
 .success-alto {
-  color: var(--info-color);
+  color: var(--error-theme);
   font-weight: var(--font-weight-semibold);
 }
 
+.email-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
 
+.email-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gray-200);
+  word-break: break-all;
+}
+
+.email-list li:last-child {
+  border-bottom: none;
+}
+
+.planning-content.two-columns {
+  display: grid;
+  gap: 20px;
+}
 
 /* ============================================
    LOADING E ESTADOS DE CARREGAMENTO
@@ -647,7 +661,7 @@
    ============================================ */
 
 .alert {
-  margin: var(--spacing-lg) var(--spacing-xl);
+  margin: auto var(--spacing-lg) var(--spacing-xl) var(--spacing-lg);
   padding: var(--spacing-md);
   border-radius: var(--border-radius);
   font-size: var(--font-size-sm);
@@ -717,7 +731,7 @@
 }
 
 .notification-close:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 @keyframes slideIn {
@@ -732,7 +746,8 @@
 }
 
 /* ============================================
-   MODAL  ============================================ */
+   MODAL
+   ============================================ */
 
 .modal-rdm-action-content {
   padding: var(--spacing-md);
@@ -804,7 +819,7 @@
   font-size: var(--font-size-sm);
 }
 
-/* Formulário de rejeição */
+/* Formulário de Reprovação */
 .rejection-form {
   margin-bottom: var(--spacing-xl);
 }
@@ -819,10 +834,6 @@
 .form-description {
   color: var(--gray-700);
   font-size: var(--font-size-sm);
-  margin-bottom: var(--spacing-md);
-}
-
-.form-group {
   margin-bottom: var(--spacing-md);
 }
 
@@ -842,7 +853,7 @@
 .rejection-textarea:focus {
   outline: none;
   border-color: var(--primary-700);
-  box-shadow: 0 0 0 3px rgba(80, 8, 120, 0.1);
+  box-shadow: 0 0 0 3px rgba(75, 13, 111, 0.12);
 }
 
 .rejection-textarea:disabled {
@@ -872,40 +883,6 @@
   font-weight: var(--font-weight-semibold);
   min-width: 140px;
   border-radius: var(--border-radius-lg);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.modal-actions .btn-secondary {
-  background: var(--gray-600);
-  color: var(--white);
-}
-
-.modal-actions .btn-secondary:hover:not(:disabled) {
-  background: var(--gray-700);
-}
-
-.modal-actions .btn-success {
-  background: var(--success-color);
-  color: var(--white);
-}
-
-.modal-actions .btn-success:hover:not(:disabled) {
-  background: var(--success-dark);
-}
-
-.modal-actions .btn-danger {
-  background: var(--error-color);
-  color: var(--white);
-}
-
-.modal-actions .btn-danger:hover:not(:disabled) {
-  background: var(--error-dark);
-}
-
-.modal-actions .btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* Spinner para processamento */
@@ -917,208 +894,74 @@
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Responsividade do modal */
-@media (max-width: 768px) {
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-    gap: var(--spacing-md);
-  }
-
-  .modal-actions .btn {
-    width: 100%;
-    min-width: auto;
+  to {
+    transform: rotate(360deg);
   }
 }
 
-/* ============================================
-   CLASSES PARA DIFERENTES CONTEXTOS (ADMIN/USER)
-   ============================================ */
-
-.rdm-details-container.admin-view {
-  border-left: 4px solid var(--primary-600);
-}
-
-.rdm-details-container.user-view {
-  max-width: none;
-}
-
-/* Seção administrativa */
-.admin-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 8px;
-}
-
-.admin-section .section-header {
-  color: white;
-}
-
-.admin-section .form-label {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.admin-section .form-value {
-  color: white;
-  font-weight: 500;
-}
-
-/* ============================================
-    ESTILOS DE FORMULÁRIO
-   ============================================ */
-
-.form-control {
+.correction-textarea {
   width: 100%;
   padding: var(--spacing-md);
-  font-size: var(--font-size-base);
-  color: var(--gray-800);
-  background: var(--white);
   border: 1px solid var(--gray-300);
   border-radius: var(--border-radius);
-  transition: border-color var(--transition-fast);
   font-family: inherit;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(80, 8, 120, 0.1);
-}
-
-.form-control:disabled {
-  background: var(--gray-100);
-  color: var(--gray-500);
-  cursor: not-allowed;
-}
-
-/* Estilos específicos para inputs*/
-.form-group input[type="text"],
-.form-group input[type="email"],
-.form-group input[type="password"],
-.form-group input[type="number"],
-.form-group input[type="date"],
-.form-group input[type="datetime-local"] {
-  min-height: 44px;
-}
-
-.form-group textarea {
-  min-height: 120px;
+  font-size: var(--font-size-sm);
   resize: vertical;
+  transition: all var(--transition-fast);
+  background: var(--white);
+  color: var(--gray-800);
 }
 
-.form-group select {
-  min-height: 44px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23500878' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 16px;
-  padding-right: 40px;
-}
-
-/* Botões de ação do formulário */
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-xl);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--gray-200);
-}
-
-.btn-warning {
-  background: var(--warning-color);
-  color: var(--white);
-}
-
-.btn-warning:hover:not(:disabled) {
-  background: var(--warning-dark);
-}
-
-
-/* Status específicos para RDM rejeitada */
-.rdm-details-container .status-badge.rejected {
-  background: var(--error-light);
-  color: var(--error-dark);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-  }
-}
-
-/* Ajustes para labels no modo de edição */
-.form-label.required::after {
-  content: " *";
-  color: var(--error-color);
-}
-
-/* Dicas de validação */
-.validation-hint {
-  font-size: var(--font-size-xs);
-  color: var(--gray-500);
-  margin-top: var(--spacing-xs);
-  display: block;
-}
-
-/* Mensagens de erro do formulário */
-.form-error {
-  color: var(--error-color);
-  font-size: var(--font-size-xs);
-  margin-top: var(--spacing-xs);
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-/* Campo obrigatório inválido */
-.form-control.ng-invalid.ng-touched {
-  border-color: var(--error-color);
-}
-
-.form-control.ng-invalid.ng-touched:focus {
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+.correction-textarea:focus {
+  outline: none;
+  border-color: var(--warning-color);
+  box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.12);
 }
 
 /* ============================================
-   SPINNER PARA PROCESSAMENTO
-   ============================================ */
-
-.spinner {
-  animation: spin 1s linear infinite;
-  display: inline-block;
-  margin-right: 5px;
-}
-
-/* ============================================
-   TOOLTIP PERSONALIZADO
+   TOOLTIP (AJUDA) – COERENTE COM ROXO
    ============================================ */
 
 .mat-tooltip {
   font-size: var(--font-size-xs) !important;
   padding: var(--spacing-xs) var(--spacing-sm) !important;
-  background: var(--primary-700) !important;
+  background: var(--primary-800) !important;
   color: var(--white) !important;
   border-radius: var(--border-radius) !important;
   box-shadow: var(--shadow-md) !important;
-  max-width: 250px !important;
+  max-width: 260px !important;
   white-space: normal !important;
   text-align: center !important;
+}
+
+/* ============================================
+   ESTADOS ESPECIAIS PARA BOTÃO DE ANEXO
+   ============================================ */
+
+/* ESTADO SEM ANEXO – CINZA NEUTRO */
+.rdm-details-container .btn-secondary.no-attachment {
+  background: var(--gray-200);
+  color: var(--gray-600) !important;
+  border-color: var(--gray-300);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Remove efeitos quando não tem anexo */
+.rdm-details-container .btn-secondary.no-attachment:hover,
+.rdm-details-container .btn-secondary.no-attachment:active,
+.rdm-details-container .btn-secondary.no-attachment:focus {
+  background: var(--gray-200);
+  color: var(--gray-600) !important;
+  border-color: var(--gray-300);
+  transform: none;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Ícone também muda de cor */
+.rdm-details-container .btn-secondary.no-attachment mat-icon {
+  color: var(--gray-500);
 }
 
 /* ============================================
@@ -1164,8 +1007,16 @@
 }
 
 @media (max-width: 768px) {
+  .rdm-details-container.admin-view .document-header {
+    top: var(--app-header-height-mobile);
+  }
+
   .document-header {
-    padding: var(--spacing-md);
+    top: var(--app-header-height-mobile);
+  }
+
+  .document-section {
+    scroll-margin-top: calc(var(--app-header-height-mobile) + 120px);
   }
 
   .header-actions {
@@ -1173,11 +1024,15 @@
     gap: var(--spacing-sm);
   }
 
-  .btn {
+  .rdm-details-container .btn {
     flex: 1;
     min-width: 140px;
     font-size: var(--font-size-xs);
     padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  .rdm-details-container {
+    padding-top: var(--app-header-height-mobile); /* 60px */
   }
 
   .document-meta {
@@ -1199,7 +1054,6 @@
   .planning-grid {
     grid-template-columns: 1fr;
   }
-
 
   .modal-actions {
     flex-direction: column;
@@ -1231,7 +1085,7 @@
     flex-direction: column;
   }
 
-  .btn {
+  .rdm-details-container .btn {
     width: 100%;
     min-width: unset;
   }
@@ -1247,70 +1101,134 @@
   }
 }
 
-
 /* ============================================
-   UTILITÁRIOS PARA ALINHAMENTO DE ÍCONES
+   ÍCONES DENTRO DOS BOTÕES
    ============================================ */
 
-.btn mat-icon {
+.rdm-details-container .btn mat-icon {
   font-size: var(--icon-size-md) !important;
   width: var(--icon-size-md) !important;
   height: var(--icon-size-md) !important;
   vertical-align: middle;
 }
 
-.btn .btn-text {
-  line-height: 1;
+/* ===== PROGRESS BAR 1-9 - ESTILO SEGMENTADO COM SHIMMER ===== */
+.risk-progress-container {
+  margin-top: 16px;
+  background: transparent;
+  padding: 0;
 }
 
-/* ============================================
-   ESTADOS ESPECIAIS PARA BOTÃO DE ANEXO
-   ============================================ */
-
-/* ESTADO NORMAL (COM ANEXO) - VERDE */
-.btn-secondary:not(.no-attachment) {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  color: var(--white);
-  border-color: #10b981;
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
 }
 
-.btn-secondary:not(.no-attachment):hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  border-color: #059669;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(5, 150, 105, 0.3);
-}
-
-.btn-secondary:not(.no-attachment):active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 3px 6px rgba(5, 150, 105, 0.2);
-}
-
-/* ESTADO SEM ANEXO - CINZA NEUTRO */
-.btn-secondary.no-attachment {
-  background: var(--gray-200);
-  color: var(--gray-600) !important;
-  border-color: var(--gray-300);
-  cursor: not-allowed;
-}
-
-/* Remove todos os efeitos interativos quando não tem anexo */
-.btn-secondary.no-attachment:hover,
-.btn-secondary.no-attachment:active,
-.btn-secondary.no-attachment:focus {
-  background: var(--gray-200);
+.progress-header .progress-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--gray-600);
-  border-color: var(--gray-300);
-  transform: none;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-  cursor: not-allowed;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Ícone também muda de cor */
-.btn-secondary:not(.no-attachment) mat-icon {
-  color: var(--white);
+.progress-value {
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-700);
+  background: var(--primary-50);
+  padding: 4px 14px;
+  border-radius: 40px;
+  border: 1px solid var(--primary-200);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-.btn-secondary.no-attachment mat-icon {
-  color: var(--gray-500);
+/* Container da barra segmentada */
+.progress-segmented {
+  display: flex;
+  gap: 2px; /* pequeno espaçamento entre segmentos */
+  height: 36px;
+  background: transparent;
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  margin-top: var(--spacing-xl);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+/* Cada segmento */
+.progress-segment {
+  flex: 1;
+  height: 100%;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden; /* para o efeito shimmer */
+}
+
+/* Cores fixas para cada nível (1 a 9) */
+.segment-1 {
+  background: #4caf50;
+} /* verde */
+.segment-2 {
+  background: #66bb6a;
+}
+.segment-3 {
+  background: #8bc34a;
+}
+.segment-4 {
+  background: #cddc39;
+} /* verde claro */
+.segment-5 {
+  background: #ffc107;
+} /* amarelo */
+.segment-6 {
+  background: #ff9800;
+} /* laranja */
+.segment-7 {
+  background: #ff6b6b;
+} /* vermelho claro */
+.segment-8 {
+  background: #ee5247;
+} /* vermelho medio*/
+.segment-9 {
+  background: #ff1100;
+} /* vermelho forte */
+
+/* Segmentos inativos (acima do nível atual) */
+.progress-segment.inactive {
+  background: #e0e0e0;
+  opacity: 0.4;
+}
+
+/* Efeito shimmer apenas nos segmentos ativos */
+.progress-segment.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.risk-label {
+  font-size: 15px;
+  font-weight: var(--font-weight-medium);
+  color: var(--gray-700);
+  text-align: right;
+  padding-top: 4px;
 }

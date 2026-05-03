@@ -1,460 +1,682 @@
-<!-- src/app/pages/dashboard/rdm-form/rdm-form.html -->
 <div class="form-container">
+  <!-- ======================================== -->
+  <!-- CABEÇALHO (varia conforme o modo)        -->
+  <!-- ======================================== -->
+  @if (isEditMode) {
+  <header class="form-header">
+    <div class="header-top">
+      <h1 class="form-title">
+        <mat-icon>edit</mat-icon>
+        Editar Solicitação RDM
+      </h1>
+      <button type="button" class="btn btn-secondary" (click)="showCancelModal()">
+        <mat-icon>close</mat-icon>
+        Cancelar
+      </button>
+    </div>
+
+    <div class="header-info">
+      <p class="form-subtitle">
+        Ticket: <strong>{{ ticket }}</strong>
+        @if (originalStatus) {
+        <span class="status-badge" [ngClass]="'status-' + originalStatus.toLowerCase()">
+          {{ originalStatus }}
+        </span>
+        }
+      </p>
+      <p class="form-help">
+        <mat-icon>info</mat-icon>
+        Você está editando uma solicitação com status "Corrigir". Após salvar, ela será reenviada para aprovação.
+      </p>
+    </div>
+  </header>
+  } @else {
   <header class="form-header">
     <h1 class="form-title">Nova Solicitação RDM</h1>
-
-    <button type="button" class="btn btn-copy-rdm" (click)="openSearchModal()">
-      <mat-icon>search</mat-icon>
-      Buscar RDM
-    </button>
-
-    <p class="form-help">
-      Para tirar dúvidas entrar em contato via
-      <a href="https://teams.microsoft.com/l/chat/0/0?users=bruno-oliveira@apoioprodesp.sp.gov.br" class="help-link"
-        target="_blank" rel="noopener" title="Link Teams Bruno Tome">
-        Teams
-      </a>
-    </p>
   </header>
+  }
 
   <!-- Progresso -->
   <nav class="form-progress" aria-label="Progresso do formulário">
     <div class="progress-steps">
-      @for (step of steps; track step.number; let i = $index) {
+      @for (step of steps; track step.number) {
       <button type="button" class="step-btn" [class.active]="currentStep === step.number"
-        (click)="goToStep(step.number)" [attr.aria-current]="currentStep === step.number ? 'step' : null">
-        {{step.number}}. {{step.label}}
+        (click)="goToStep(step.number)">
+        {{ step.number }}. {{ step.label }}
       </button>
       }
     </div>
     <div class="progress-bar">
-      <div class="progress-fill" [style.width]="(currentStep / totalSteps) * 100 + '%'"
-        [attr.aria-valuenow]="currentStep" [attr.aria-valuemin]="1" [attr.aria-valuemax]="totalSteps">
-      </div>
+      <div class="progress-fill" [style.width]="(currentStep / totalSteps) * 100 + '%'"></div>
     </div>
   </nav>
 
   <!-- Formulário -->
-  <form (ngSubmit)="onSubmit()" #requestForm="ngForm" class="rdm-form">
+  <form (ngSubmit)="onSubmit()" #requestForm="ngForm" class="rdm-form" novalidate>
 
-    <!-- Passo 1: Identificação -->
+    <!-- ======================================== -->
+    <!-- PASSO 1: IDENTIFICAÇÃO                   -->
+    <!-- ======================================== -->
     @if (currentStep === 1) {
-    <fieldset class="form-section" aria-labelledby="step1-title">
-      <legend id="step1-title">1. Identificação da Solicitação</legend>
+    <fieldset [disabled]="isLoading" class="form-section">
+      <legend>1. Identificação da solicitação</legend>
 
+      <!-- Tipo + botão ajuda (sempre visível) -->
       <div class="form-group">
-        <label class="form-label" for="request-type">
-          Tipo <span class="required">*</span>
-        </label>
+        <div class="type-request">
+          <label class="form-label" for="request-type">Tipo</label>
+          <button type="button" class="btn-icon btn-help" (click)="openHelpModal()"
+            aria-label="Ajuda sobre os tipos de RDM" title="O que significam os tipos?">
+            <mat-icon>help_outline</mat-icon>
+          </button>
+        </div>
         <select class="form-control" id="request-type" [(ngModel)]="formData.identification.Type"
-          name="identification.Type" required>
+          name="identification.Type" required (blur)="onFieldBlur('identification.Type')"
+          [class.error]="isFieldInvalid('identification.Type')">
+          <option value="">Selecione...</option>
           @for (type of requestTypes; track type.value) {
           <option [value]="type.value">{{ type.label }}</option>
           }
         </select>
+        <app-field-error [error]="getFieldError('identification.Type')" />
       </div>
 
+      <!-- Título -->
       <div class="form-group">
-        <label class="form-label" for="request-title">
-          Título <span class="required">*</span>
-        </label>
+        <label class="form-label" for="request-title">Título</label>
         <input type="text" class="form-control" id="request-title" [(ngModel)]="formData.identification.Title"
-          name="identification.Title" placeholder="Ex: Ajuste no sistema" required>
+          name="identification.Title" placeholder="Ex: Atualização_SCODES_Limpar_Número_Protocol" required
+          (blur)="onFieldBlur('identification.Title')" spellcheck="true" lang="pt-BR"
+          [class.error]="isFieldInvalid('identification.Title')">
+        <app-field-error [error]="getFieldError('identification.Title')" />
       </div>
-    </fieldset>
-    }
 
-    <!-- Passo 2: Objetivo -->
-    @if (currentStep === 2) {
-    <fieldset class="form-section" aria-labelledby="step2-title">
-      <legend id="step2-title">2. Objetivo da Solução</legend>
-
+      <!-- Objetivo -->
       <div class="form-group">
         <label class="form-label" for="objective-solution">
-          Objetivo e/ou Solução Proposta<span class="required">*</span>
-          <span class="form-hint">(Descreva a solução ou objetivo esperado)</span>
+          Descreva a solução ou objetivo esperado
         </label>
         <textarea class="form-control" id="objective-solution" [(ngModel)]="formData.solution.ObjectiveOrSolution"
-          name="solution.ObjectiveOrSolution"
-          placeholder="Descreva de forma clara o objetivo que se pretende alcançar e, se aplicável, a solução proposta para atender à demanda identificada."
-          rows="6" required></textarea>
+          name="solution.ObjectiveOrSolution" placeholder="Explique o que precisa ser alcançado (objetivo)" rows="6"
+          required (blur)="onFieldBlur('solution.ObjectiveOrSolution')" spellcheck="true" lang="pt-BR"
+          [class.error]="isFieldInvalid('solution.ObjectiveOrSolution')"></textarea>
+        <app-field-error [error]="getFieldError('solution.ObjectiveOrSolution')" />
       </div>
     </fieldset>
     }
 
-    <!-- Passo 3: Categorização -->
+    <!-- ======================================== -->
+    <!-- PASSO 2: CATEGORIZAÇÃO                    -->
+    <!-- ======================================== -->
+    @if (currentStep === 2) {
+    <fieldset [disabled]="isLoading" class="form-section">
+      <legend>2. Categorização/ impacto</legend>
+
+      <!-- BLOCO CATEGORIZAÇÃO -->
+      <section class="step2-block">
+        <h3 class="step2-block-title">Categorização</h3>
+
+        <!-- Sistema/Serviço -->
+        <div class="step2-row step2-row-2col step2-row-2col-wideleft">
+          <div class="form-group">
+            <label class="form-label" for="change-system">
+              Sistema/serviço
+              <span class="form-hint">(Qual sistema/serviço será alterado?)</span>
+            </label>
+
+            <!-- Select com opção "Outros" adicionada -->
+            <select class="form-control" id="change-system" [(ngModel)]="selectedSystem"
+              (ngModelChange)="updateSystemValue()" name="selectedSystem" required
+              (blur)="onFieldBlur('impactCategory.ChangeSystem')"
+              [class.error]="isFieldInvalid('impactCategory.ChangeSystem')">
+              <option value="">Selecione um sistema...</option>
+              <option value="Outros">Outros (especificar)</option>
+              @for (system of systemsList; track system.systemService) {
+              <option [value]="system.systemService">
+                {{ system.systemService }} ({{ system.department }})
+              </option>
+              }
+            </select>
+
+            <!-- Campo de texto para sistema personalizado (exibido apenas quando "Outros" está selecionado) -->
+            @if (selectedSystem === 'Outros') {
+            <input type="text" class="form-control custom-system-input" placeholder="Digite o nome do sistema/serviço"
+              [(ngModel)]="customSystemName" (ngModelChange)="updateSystemValue()" name="customSystemName"
+              (blur)="onFieldBlur('impactCategory.ChangeSystem')"
+              [class.error]="isFieldInvalid('impactCategory.ChangeSystem')" />
+            }
+
+            <app-field-error [error]="getFieldError('impactCategory.ChangeSystem')" />
+          </div>
+
+          <!-- Ambiente -->
+          <div class="form-group">
+            <label class="form-label" for="environment">Ambiente</label>
+            <select class="form-control" id="environment" [(ngModel)]="formData.impactCategory.Environment"
+              name="impactCategory.Environment" required (blur)="onFieldBlur('impactCategory.Environment')"
+              [class.error]="isFieldInvalid('impactCategory.Environment')">
+              <option value="">Selecione...</option>
+              @for (env of environmentTypes; track env.value) {
+              <option [value]="env.value">{{ env.label }}</option>
+              }
+            </select>
+            <app-field-error [error]="getFieldError('impactCategory.Environment')" />
+          </div>
+        </div>
+
+        <!-- Tipo de mudança -->
+        <div class="step2-row step2-row-2col">
+          <div class="form-group">
+            <label class="form-label" for="activity-type">
+              Tipo de mudança
+              <span class="form-hint">(Natureza principal da mudança.)</span>
+            </label>
+            <select class="form-control" id="activity-type" [(ngModel)]="formData.impactCategory.Activity"
+              name="impactCategory.Activity" required (blur)="onFieldBlur('impactCategory.Activity')"
+              [class.error]="isFieldInvalid('impactCategory.Activity')">
+              <option value="">Selecione...</option>
+              @for (activity of activityTypes; track activity.value) {
+              <option [value]="activity.value">{{ activity.label }}</option>
+              }
+            </select>
+            <app-field-error [error]="getFieldError('impactCategory.Activity')" />
+          </div>
+        </div>
+
+        <!-- ICs Impactados -->
+        <div class="step2-row step2-row-1col">
+          <div class="form-group">
+            <label class="form-label" for="ics-impacted">
+              ICs impactados
+              <span class="form-hint">(Itens de configuração impactados)</span>
+            </label>
+
+            <input type="text" class="form-control" id="ics-impacted" [(ngModel)]="formData.impactCategory.ICsImpacted"
+              name="impactCategory.ICsImpacted"
+              placeholder="Ex: servidores (SQL, Oracle, IIS, Docker...) serviços (API, Aplicação)" required
+              (blur)="onFieldBlur('impactCategory.ICsImpacted')" spellcheck="true" lang="pt-BR"
+              [class.error]="isFieldInvalid('impactCategory.ICsImpacted')">
+            <app-field-error [error]="getFieldError('impactCategory.ICsImpacted')" />
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOCO IMPACTO E PRIORIDADE -->
+      <section class="step2-block">
+        <h3 class="step2-block-title">Impacto e prioridade</h3>
+
+        <!-- Funcionalidades impactadas -->
+        <div class="step2-row step2-row-1col">
+          <div class="form-group">
+            <label class="form-label" for="impacted-services">
+              Funcionalidades impactadas
+              <span class="form-hint">(Quais partes do sistema serão afetadas?)</span>
+            </label>
+            <textarea class="form-control" id="impacted-services" [(ngModel)]="formData.impactCategory.ImpactedServices"
+              name="impactCategory.ImpactedServices"
+              placeholder="Ex: Funcionalidades afetadas no sistema de gerenciamento de usuários, etc." required
+              (blur)="onFieldBlur('impactCategory.ImpactedServices')" spellcheck="true" lang="pt-BR"
+              [class.error]="isFieldInvalid('impactCategory.ImpactedServices')"></textarea>
+            <app-field-error [error]="getFieldError('impactCategory.ImpactedServices')" />
+          </div>
+        </div>
+
+        <!-- Linha única: Condição do serviço, Impacto e Urgência -->
+        <div class="step2-row step2-row-3col">
+          <div class="form-group">
+            <label class="form-label" for="service-condition">Condição do serviço</label>
+            <select class="form-control" id="service-condition" [(ngModel)]="formData.impactPriority.ServiceCondition"
+              name="impactPriority.ServiceCondition" required (blur)="onFieldBlur('impactPriority.ServiceCondition')"
+              [class.error]="isFieldInvalid('impactPriority.ServiceCondition')">
+              <option value="">Selecione...</option>
+              @for (impact of impactTypes; track impact.value) {
+              <option [value]="impact.value">{{ impact.label }}</option>
+              }
+            </select>
+            <app-field-error [error]="getFieldError('impactPriority.ServiceCondition')" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="impact-priority">Impacto</label>
+            <select class="form-control" id="impact-priority" [(ngModel)]="formData.impactPriority.Impact"
+              name="impactPriority.Impact" required (blur)="onFieldBlur('impactPriority.Impact')"
+              [class.error]="isFieldInvalid('impactPriority.Impact')">
+              <option value="">Selecione...</option>
+              @for (level of levelTypes; track level.value) {
+              <option [value]="level.value">{{ level.label }}</option>
+              }
+            </select>
+            <app-field-error [error]="getFieldError('impactPriority.Impact')" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="urgency">Urgência</label>
+            <select class="form-control" id="urgency" [(ngModel)]="formData.impactPriority.Urgency"
+              name="impactPriority.Urgency" required (blur)="onFieldBlur('impactPriority.Urgency')"
+              [class.error]="isFieldInvalid('impactPriority.Urgency')">
+              <option value="">Selecione...</option>
+              @for (level of levelTypes; track level.value) {
+              <option [value]="level.value">{{ level.label }}</option>
+              }
+            </select>
+            <app-field-error [error]="getFieldError('impactPriority.Urgency')" />
+          </div>
+        </div>
+
+        <!-- Prioridade calculada (somente leitura) -->
+        @if (riscoCalculado) {
+        <div class="step2-row step2-row-1col">
+          <div class="form-group">
+            <label class="form-label">Classificação de risco</label>
+            <div class="risk-progress-container">
+              <div class="progress-segmented">
+                @for (level of [1,2,3,4,5,6,7,8,9]; track level) {
+                <div class="progress-segment segment-{{ level }}" [class.active]="level <= riscoCalculado"
+                  [class.inactive]="level > riscoCalculado" [matTooltip]="getTooltipForLevel(level)"
+                  matTooltipPosition="above">
+                </div>
+                }
+              </div>
+              <small class="hint">Prioridade baseada na combinação de Impacto e Urgência.</small>
+              <div class="risk-label">
+                {{ getRiskLabel(riscoCalculado) }}
+              </div>
+            </div>
+          </div>
+        </div>
+        }
+      </section>
+    </fieldset>
+    }
+
+    <!-- ======================================== -->
+    <!-- PASSO 3: PLANO DE COMUNICAÇÃO             -->
+    <!-- ======================================== -->
     @if (currentStep === 3) {
-    <fieldset class="form-section" aria-labelledby="step3-title">
-      <legend id="step3-title">3. Categorização</legend>
+    <fieldset [disabled]="isLoading" class="form-section">
+      <legend>3. Plano de comunicação</legend>
 
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="form-label" for="category-objective">Objetivo</label>
-          <select class="form-control" id="category-objective" [(ngModel)]="formData.category.Objective"
-            name="category.Objective">
-            @for (obj of objectiveTypes; track obj.value) {
-            <option [value]="obj.value">{{ obj.label }}</option>
-            }
-          </select>
+      <!-- Campo de EMAILS (apenas CC) -->
+      <div class="form-group emails-group">
+        <label class="form-label" for="email-input">
+          E-mail(s) para notificação (Cópia - CC)
+          <span class="form-hint">(E-mails que receberão cópia da RDM, apenas para ciência)</span>
+        </label>
+
+        <!-- Checkbox "Não informar e-mails" -->
+        <div class="checkbox-wrapper">
+          <label>
+            <input type="checkbox" [checked]="emailsNotApplicable"
+              (change)="onEmailsNotApplicableChange($event.target.checked)">
+            Não informar e-mails
+          </label>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="category-action">Ação</label>
-          <select class="form-control" id="category-action" [(ngModel)]="formData.category.Action"
-            name="category.Action">
-            @for (action of actionTypes; track action.value) {
-            <option [value]="action.value">{{ action.label }}</option>
+        <!-- Tags de emails (só exibe se não estiver marcado e houver emails) -->
+        @if (!emailsNotApplicable && formData.planComunication.EmailsCc.length > 0) {
+        <div class="email-tags-container">
+          <div class="email-tags-list">
+            @for (email of formData.planComunication.EmailsCc; track $index) {
+            <div class="email-tag">
+              <span class="email-tag-text">{{ email }}</span>
+              <button type="button" class="email-tag-remove" (click)="removeEmail($index)" aria-label="Remover e-mail">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
             }
-          </select>
+          </div>
+        </div>
+        }
+
+        <!-- Input de email (desabilitado se checkbox marcado) -->
+        <div class="email-input-wrapper">
+          <input type="email" class="form-control email-input" id="email-input" #emailInput [value]="currentEmailInput"
+            (keyup)="onEmailKeyup($event)" (keydown)="onEmailKeydown($event)" (paste)="onEmailPaste($event)"
+            (blur)="onEmailBlur()" placeholder="Digite um e-mail e pressione Enter ou vírgula para adicionar"
+            autocomplete="off" [class.error]="emailError" [disabled]="emailsNotApplicable">
+          <button type="button" class="btn btn-add-email" (click)="addCurrentEmail()"
+            [disabled]="emailsNotApplicable || !isValidCurrentEmail()">
+            <mat-icon>add</mat-icon> Adicionar
+          </button>
         </div>
 
-        <div class="form-group">
-          <label class="form-label" for="category-impact">Impacto</label>
-          <select class="form-control" id="category-impact" [(ngModel)]="formData.category.Impact"
-            name="category.Impact">
-            @for (impact of levelTypes; track impact.value) {
-            <option [value]="impact.value">{{ impact.label }}</option>
-            }
-          </select>
+        <!-- Erro do email -->
+        @if (emailError) {
+        <div class="field-error" role="alert">
+          <mat-icon>error</mat-icon>
+          <span>{{ emailError }}</span>
         </div>
+        }
 
-        <div class="form-group">
-          <label class="form-label" for="category-urgency">Urgência</label>
-          <select class="form-control" id="category-urgency" [(ngModel)]="formData.category.Urgency"
-            name="category.Urgency">
-            @for (urgency of levelTypes; track urgency.value) {
-            <option [value]="urgency.value">{{ urgency.label }}</option>
-            }
-          </select>
-        </div>
+        <!-- Erro de validação do campo (do service) -->
+        <app-field-error [error]="getFieldError('planComunication.EmailsCc')" />
+
+        <small class="hint">
+          <mat-icon class="hint-icon">info</mat-icon>
+          Formato válido: nome@dominio.com
+        </small>
       </div>
     </fieldset>
     }
 
-    <!-- Passo 4: Categoria de Impacto -->
+    <!-- ======================================== -->
+    <!-- PASSO 4: CRONOGRAMA                       -->
+    <!-- ======================================== -->
     @if (currentStep === 4) {
-    <fieldset class="form-section" aria-labelledby="step4-title">
-      <legend id="step4-title">4. Categoria de Impacto</legend>
+    <fieldset [disabled]="isLoading" class="form-section">
+      <legend>4. Cronograma</legend>
 
-      <div class="form-group">
-        <label class="form-label" for="change-system">
-          Servidor/Sistema
-          <span class="form-hint">(Qual sistema será alterado?)</span>
-        </label>
-        <input type="text" class="form-control" id="change-system" [(ngModel)]="formData.impactCategory.ChangeSystem"
-          name="impactCategory.ChangeSystem" placeholder="Ex: Sistema de Controle de Acesso">
-      </div>
-
-      <div class="form-row">
-        <div class="form-group half">
-          <label class="form-label" for="activity-type">Atividade</label>
-          <select class="form-control" id="activity-type" [(ngModel)]="formData.impactCategory.Activity"
-            name="impactCategory.Activity">
-            @for (activity of activityTypes; track activity.value) {
-            <option [value]="activity.value">{{ activity.label }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-group half">
-          <label class="form-label" for="environment">Ambiente</label>
-          <select class="form-control" id="environment" [(ngModel)]="formData.impactCategory.Environment"
-            name="impactCategory.Environment">
-            @for (env of environmentTypes; track env.value) {
-            <option [value]="env.value">{{ env.label }}</option>
-            }
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="impacted-services">
-          Serviços Impactados
-          <span class="form-hint">(Quais serviços serão afetados?)</span>
-        </label>
-        <input type="text" class="form-control" id="impacted-services"
-          [(ngModel)]="formData.impactCategory.ImpactedServices" name="impactCategory.ImpactedServices"
-          placeholder="Ex: Login, Relatórios, API">
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="ics-impacted">
-          ICs Impactados
-          <span class="form-hint">(Itens de Configuração impactados)</span>
-        </label>
-        <input type="text" class="form-control" id="ics-impacted" [(ngModel)]="formData.impactCategory.ICsImpacted"
-          name="impactCategory.ICsImpacted" placeholder="Ex: Servidor, Banco de Dados">
-      </div>
-    </fieldset>
-    }
-
-    <!-- Passo 5: Janela de Implantação -->
-    @if (currentStep === 5) {
-    <fieldset class="form-section" aria-labelledby="step5-title">
-      <legend id="step5-title">5. Janela de Implantação</legend>
-
-      <div class="form-group">
-        <label class="form-label" for="impact-type">Tipo de Impacto</label>
-        <select class="form-control" id="impact-type" [(ngModel)]="formData.deploymentWindow.ImpactType"
-          name="deploymentWindow.ImpactType">
-          @for (impact of impactTypeOptions; track impact.value) {
-          <option [value]="impact.value">{{ impact.label }}</option>
-          }
-        </select>
-      </div>
-    </fieldset>
-    }
-
-    <!-- Passo 6: Plano de Comunicação -->
-    @if (currentStep === 6) {
-    <fieldset class="form-section" aria-labelledby="step6-title">
-      <legend id="step6-title">6. Plano de Comunicação</legend>
-
-      <div class="form-group">
-        <label class="form-label" for="whos-notified">
-          Quem Será Notificado
-          <span class="form-hint">(Liste as pessoas ou equipes a serem notificadas)</span>
-        </label>
-        <input type="text" class="form-control" id="whos-notified" [(ngModel)]="formData.planComunication.WhosNotified"
-          name="planComunication.WhosNotified" placeholder="Ex: Equipe de TI, Usuários do Sistema X">
-      </div>
-
-      <div class="form-row">
-        <div class="form-group half">
-          <label class="form-label" for="moment">Momento da Comunicação</label>
-          <select class="form-control" id="moment" [(ngModel)]="formData.planComunication.Moment"
-            name="planComunication.Moment">
-            @for (moment of momentOptions; track moment.value) {
-            <option [value]="moment.value">{{ moment.label }}</option>
-            }
-          </select>
-        </div>
-
-        <div class="form-group half">
-          <label class="form-label" for="comunication-type">Meio utilizado</label>
-          <select class="form-control" id="comunication-type" [(ngModel)]="formData.planComunication.ComunicationType"
-            name="planComunication.ComunicationType">
-            @for (comm of comunicationTypeOptions; track comm.value) {
-            <option [value]="comm.value">{{ comm.label }}</option>
-            }
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label" for="comunication-tech-area">Responsável</label>
-        <select class="form-control" id="comunication-tech-area" [(ngModel)]="formData.planComunication.TechnologyArea"
-          name="planComunication.TechnologyArea">
-          <option value="">Selecione...</option>
-          <option value="BancoDeDados">Banco de Dados</option>
-          <option value="Linux">Linux</option>
-          <option value="Windows">Windows</option>
-          <option value="Redes">Redes</option>
-        </select>
-      </div>
-    </fieldset>
-    }
-
-    <!-- Passo 7: Fases do Projeto -->
-    @if (currentStep === 7) {
-    <fieldset class="form-section" aria-labelledby="step7-title">
-      <legend id="step7-title">7. Fases do Projeto</legend>
-
+      <!-- Planejamento -->
       <div class="form-subsection">
         <h4>Planejamento</h4>
         <div class="form-group">
-          <label class="form-label" for="planning-wasPlanned">A fase de planejamento foi realizada?</label>
+          <label class="form-label" for="planning-wasPlanned">
+            A fase de planejamento foi realizada?
+          </label>
           <select class="form-control" id="planning-wasPlanned" [(ngModel)]="formData.phases.planning.WasPlanned"
-            name="phases.planning.WasPlanned">
+            name="phases.planning.WasPlanned" required (blur)="onFieldBlur('phases.planning.WasPlanned')"
+            (change)="onPhaseChange('planning')" [class.error]="isFieldInvalid('phases.planning.WasPlanned')">
             <option value="">Selecione...</option>
             <option value="SIM">Sim</option>
             <option value="NAO">Não</option>
           </select>
+          <app-field-error [error]="getFieldError('phases.planning.WasPlanned')" />
         </div>
 
-        <!-- Justificativa para Planejamento (só aparece quando for NÃO) -->
+        <!-- Justificativa (condicional) -->
         @if (formData.phases.planning.WasPlanned === 'NAO') {
         <div class="form-group">
-          <label class="form-label" for="planning-justification">Justificativa da ausência de planejamento</label>
+          <label class="form-label" for="planning-justification">
+            Justificativa da ausência de planejamento
+            <span class="required-asterisk" aria-hidden="true">*</span>
+          </label>
           <textarea class="form-control" id="planning-justification"
             [(ngModel)]="formData.phases.planning.JustificationPlanned" name="phases.planning.JustificationPlanned"
-            placeholder="Explique por que a fase de planejamento não foi realizada." rows="3"></textarea>
+            rows="3" spellcheck="true" lang="pt-BR"
+            [class.error]="isFieldInvalid('phases.planning.JustificationPlanned')"
+            (blur)="onFieldBlur('phases.planning.JustificationPlanned')"></textarea>
+          <app-field-error [error]="getFieldError('phases.planning.JustificationPlanned')" />
         </div>
         }
       </div>
 
+      <!-- Homologação -->
       <div class="form-subsection">
-        <h4>Teste / Homologação</h4>
+        <h4>Homologação</h4>
         <div class="form-group">
-          <label class="form-label" for="test-wasTested">A fase de testes/homologação foi realizada?</label>
+          <label class="form-label" for="test-wasTested">
+            A fase de homologação foi realizada?
+          </label>
           <select class="form-control" id="test-wasTested" [(ngModel)]="formData.phases.testHomology.WasTested"
-            name="phases.testHomology.WasTested">
+            name="phases.testHomology.WasTested" required (blur)="onFieldBlur('phases.testHomology.WasTested')"
+            (change)="onPhaseChange('testHomology')" [class.error]="isFieldInvalid('phases.testHomology.WasTested')">
             <option value="">Selecione...</option>
             <option value="SIM">Sim</option>
             <option value="NAO">Não</option>
           </select>
+          <app-field-error [error]="getFieldError('phases.testHomology.WasTested')" />
         </div>
 
-        <!-- Justificativa para Teste (só aparece quando for NÃO) -->
+        <!-- Justificativa (condicional) -->
         @if (formData.phases.testHomology.WasTested === 'NAO') {
         <div class="form-group">
-          <label class="form-label" for="test-justification">Justificativa da ausência de testes</label>
+          <label class="form-label" for="test-justification">
+            Justificativa da ausência de testes
+            <span class="required-asterisk" aria-hidden="true">*</span>
+          </label>
           <textarea class="form-control" id="test-justification"
             [(ngModel)]="formData.phases.testHomology.JustificationTest" name="phases.testHomology.JustificationTest"
-            placeholder="Informe o motivo pelo qual a fase de testes/homologação não foi executada."
-            rows="3"></textarea>
+            placeholder="Informe o motivo..." rows="3" spellcheck="true" lang="pt-BR"
+            [class.error]="isFieldInvalid('phases.testHomology.JustificationTest')"
+            (blur)="onFieldBlur('phases.testHomology.JustificationTest')"></textarea>
+          <app-field-error [error]="getFieldError('phases.testHomology.JustificationTest')" />
         </div>
         }
       </div>
 
+      <!-- Janela de execução -->
       <div class="form-subsection">
-        <h4>Execução</h4>
+        <h4>Janela de execução</h4>
         <div class="form-row">
           <div class="form-group half">
-            <label class="form-label" for="execute-stage">Em que momento</label>
-            <select class="form-control" id="execute-stage" [(ngModel)]="formData.phases.execute.stage"
-              name="phases.execute.stage">
-              @for (stage of stageOptions; track stage.value) {
-              <option [value]="stage.value">{{ stage.label }}</option>
-              }
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group half">
-            <label class="form-label" for="execute-start">Data e hora de início</label>
-            <input type="datetime-local" class="form-control" id="execute-start"
-              [(ngModel)]="formData.phases.execute.startDate" name="phases.execute.startDate">
+            <label class="form-label" for="execution-start">Data e hora de início</label>
+            <input type="datetime-local" class="form-control" id="execution-start"
+              [(ngModel)]="formData.phases.executionWindow.startDate" name="phases.executionWindow.startDate" required
+              (blur)="onFieldBlur('phases.executionWindow.startDate')" (input)="updateCurrentStepValidity()"
+              [class.error]="isFieldInvalid('phases.executionWindow.startDate')" min="2000-01-01T00:00"
+              max="2099-12-31T23:59">
+            <app-field-error [error]="getFieldError('phases.executionWindow.startDate')" />
           </div>
           <div class="form-group half">
-            <label class="form-label" for="execute-end">Data e hora de término</label>
-            <input type="datetime-local" class="form-control" id="execute-end"
-              [(ngModel)]="formData.phases.execute.endDate" name="phases.execute.endDate">
+            <label class="form-label" for="execution-end">Data e hora de término</label>
+            <input type="datetime-local" class="form-control" id="execution-end"
+              [(ngModel)]="formData.phases.executionWindow.endDate" name="phases.executionWindow.endDate" required
+              (blur)="onFieldBlur('phases.executionWindow.endDate')" (input)="updateCurrentStepValidity()"
+              [class.error]="isFieldInvalid('phases.executionWindow.endDate')" min="2000-01-01T00:00"
+              max="2099-12-31T23:59">
+            <app-field-error [error]="getFieldError('phases.executionWindow.endDate')" />
           </div>
         </div>
+        <!-- Erro de range de datas -->
+        <app-field-error [error]="getFieldError('phases.executionWindow.dateRange')" />
       </div>
 
+      <!-- Validação -->
       <div class="form-subsection">
         <h4>Validação</h4>
         <div class="form-row">
           <div class="form-group half">
-            <label class="form-label" for="validation-stage">Momento da validação</label>
-            <select class="form-control" id="validation-stage" [(ngModel)]="formData.phases.validation.stage"
-              name="phases.validation.stage">
-              @for (stage of stageOptions; track stage.value) {
-              <option [value]="stage.value">{{ stage.label }}</option>
-              }
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group half">
             <label class="form-label" for="validation-start">Data e hora de início</label>
             <input type="datetime-local" class="form-control" id="validation-start"
-              [(ngModel)]="formData.phases.validation.startDate" name="phases.validation.startDate">
+              [(ngModel)]="formData.phases.validation.startDate" name="phases.validation.startDate" required
+              (blur)="onFieldBlur('phases.validation.startDate')"
+              [class.error]="isFieldInvalid('phases.validation.startDate')" min="2000-01-01T00:00"
+              max="2099-12-31T23:59">
+            <app-field-error [error]="getFieldError('phases.validation.startDate')" />
           </div>
           <div class="form-group half">
             <label class="form-label" for="validation-end">Data e hora de término</label>
             <input type="datetime-local" class="form-control" id="validation-end"
-              [(ngModel)]="formData.phases.validation.endDate" name="phases.validation.endDate">
+              [(ngModel)]="formData.phases.validation.endDate" name="phases.validation.endDate" required
+              (blur)="onFieldBlur('phases.validation.endDate')"
+              [class.error]="isFieldInvalid('phases.validation.endDate')" min="2000-01-01T00:00" max="2099-12-31T23:59">
+            <app-field-error [error]="getFieldError('phases.validation.endDate')" />
           </div>
         </div>
+        <!-- Erro de range de datas -->
+        <app-field-error [error]="getFieldError('phases.validation.dateRange')" />
       </div>
     </fieldset>
     }
 
-    <!-- Passo 8: Planejamento -->
-    @if (currentStep === 8) {
-    <fieldset class="form-section" aria-labelledby="step8-title">
-      <legend id="step8-title">8. Planejamento</legend>
+    <!-- ======================================== -->
+    <!-- PASSO 5: PLANEJAMENTO                      -->
+    <!-- ======================================== -->
+    @if (currentStep === 5) {
+    <fieldset [disabled]="isLoading" class="form-section">
+      <legend>5. Planejamento</legend>
 
+      <!-- Planejamento de execução -->
       <div class="form-subsection">
-        <h4>Planejamento de Execução</h4>
+        <h4>Planejamento de execução</h4>
         <div class="form-group">
           <label class="form-label" for="execution-activity">
             Atividade(s)
             <span class="form-hint">(Descreva as atividades de execução)</span>
           </label>
           <textarea class="form-control" id="execution-activity" [(ngModel)]="formData.planningExecutation.Ativity"
-            name="planningExecutation.Ativity" placeholder="Descreva as atividades planejadas para execução..."
-            rows="3"></textarea>
+            spellcheck="true" lang="pt-BR" name="planningExecutation.Ativity"
+            placeholder="Descreva as atividades planejadas para execução..." rows="3" required
+            (blur)="onFieldBlur('planningExecutation.Ativity')"
+            [class.error]="isFieldInvalid('planningExecutation.Ativity')"></textarea>
+          <small class="hint">Ao compartilhar arquivos/links deixar o mesmo como público.</small>
+          <app-field-error [error]="getFieldError('planningExecutation.Ativity')" />
         </div>
 
         <div class="form-row">
+          <!-- Probabilidade de sucesso -->
           <div class="form-group half">
-            <label class="form-label" for="execution-tech-area">Executor(es)</label>
-            <select class="form-control" id="execution-tech-area"
-              [(ngModel)]="formData.planningExecutation.TechnologyArea" name="planningExecutation.TechnologyArea">
-              @for (tech of technologyAreaOptions; track tech.value) {
-              <option [value]="tech.value">{{ tech.label }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="form-group half">
-            <label class="form-label" for="execution-probability">Probabilidade de Sucesso</label>
+            <label class="form-label" for="execution-probability">
+              Probabilidade de sucesso
+            </label>
             <select class="form-control" id="execution-probability"
               [(ngModel)]="formData.planningExecutation.ProbabilityOfSuccess"
-              name="planningExecutation.ProbabilityOfSuccess">
+              name="planningExecutation.ProbabilityOfSuccess" required
+              (blur)="onFieldBlur('planningExecutation.ProbabilityOfSuccess')"
+              [class.error]="isFieldInvalid('planningExecutation.ProbabilityOfSuccess')">
+              <option value="">Selecione...</option>
               @for (prob of levelTypes; track prob.value) {
               <option [value]="prob.value">{{ prob.label }}</option>
               }
             </select>
+            <app-field-error [error]="getFieldError('planningExecutation.ProbabilityOfSuccess')" />
           </div>
         </div>
       </div>
 
+      <!-- Planejamento de remediação -->
       <div class="form-subsection">
-        <h4>Planejamento de Remediação</h4>
+        <h4>Planejamento de remediação</h4>
+
+        <!-- Select Sim/Não -->
+        <div class="form-group">
+          <label class="form-label" for="remediation-wasPlanned">
+            A remediação/rollback foi planejada?
+          </label>
+          <select class="form-control" id="remediation-wasPlanned"
+            [(ngModel)]="formData.PlanningRemediation.WasRemediationPlanned"
+            name="PlanningRemediation.WasRemediationPlanned" required
+            (blur)="onFieldBlur('PlanningRemediation.WasRemediationPlanned')" (change)="onRemediationChange()"
+            [class.error]="isFieldInvalid('PlanningRemediation.WasRemediationPlanned')">
+            <option value="">Selecione...</option>
+            <option value="SIM">Sim</option>
+            <option value="NAO">Não</option>
+          </select>
+          <app-field-error [error]="getFieldError('PlanningRemediation.WasRemediationPlanned')" />
+        </div>
+
+        <!-- Bloco condicional para SIM -->
+        @if (formData.PlanningRemediation.WasRemediationPlanned === 'SIM') {
+        <!-- Atividade de remediação -->
         <div class="form-group">
           <label class="form-label" for="remediation-activity">
             Atividade(s)
-            <span class="form-hint">(Descreva as atividades de remediação em caso de falha)</span>
+            <span class="form-hint">(Descreva as atividades de remediação)</span>
           </label>
           <textarea class="form-control" id="remediation-activity" [(ngModel)]="formData.PlanningRemediation.Ativity"
-            name="PlanningRemediation.Ativity" placeholder="Descreva o plano de remediação em caso de problemas..."
-            rows="3"></textarea>
+            name="PlanningRemediation.Ativity" placeholder="Descreva as atividades planejadas para remediação..."
+            rows="3" [required]="formData.PlanningRemediation.WasRemediationPlanned === 'SIM'"
+            (blur)="onFieldBlur('PlanningRemediation.Ativity')"
+            [class.error]="isFieldInvalid('PlanningRemediation.Ativity')"></textarea>
+          <app-field-error [error]="getFieldError('PlanningRemediation.Ativity')" />
         </div>
 
+        <!-- Probabilidade de sucesso da remediação -->
         <div class="form-row">
           <div class="form-group half">
-            <label class="form-label" for="remediation-tech-area">Executor(es)</label>
-            <select class="form-control" id="remediation-tech-area"
-              [(ngModel)]="formData.PlanningRemediation.TechnologyArea" name="PlanningRemediation.TechnologyArea">
-              @for (tech of technologyAreaOptions; track tech.value) {
-              <option [value]="tech.value">{{ tech.label }}</option>
-              }
-            </select>
-          </div>
-
-          <div class="form-group half">
-            <label class="form-label" for="remediation-probability">Probabilidade de Sucesso</label>
+            <label class="form-label" for="remediation-probability">
+              Probabilidade de Sucesso da Remediação
+            </label>
             <select class="form-control" id="remediation-probability"
               [(ngModel)]="formData.PlanningRemediation.ProbabilityOfSuccess"
-              name="PlanningRemediation.ProbabilityOfSuccess">
+              name="PlanningRemediation.ProbabilityOfSuccess"
+              [required]="formData.PlanningRemediation.WasRemediationPlanned === 'SIM'"
+              (blur)="onFieldBlur('PlanningRemediation.ProbabilityOfSuccess')"
+              [class.error]="isFieldInvalid('PlanningRemediation.ProbabilityOfSuccess')">
+              <option value="">Selecione...</option>
               @for (prob of levelTypes; track prob.value) {
               <option [value]="prob.value">{{ prob.label }}</option>
               }
             </select>
+            <app-field-error [error]="getFieldError('PlanningRemediation.ProbabilityOfSuccess')" />
           </div>
         </div>
+        }
+
+        <!-- Bloco condicional para NÃO -->
+        @if (formData.PlanningRemediation.WasRemediationPlanned === 'NAO') {
+        <div class="form-group">
+          <label class="form-label" for="remediation-justification">
+            Justificativa da ausência de planejamento de remediação
+          </label>
+          <textarea class="form-control" id="remediation-justification"
+            [(ngModel)]="formData.PlanningRemediation.JustificationRemediation"
+            name="PlanningRemediation.JustificationRemediation" placeholder="Informe o motivo..." rows="3"
+            [required]="formData.PlanningRemediation.WasRemediationPlanned === 'NAO'"
+            (blur)="onFieldBlur('PlanningRemediation.JustificationRemediation')"
+            [class.error]="isFieldInvalid('PlanningRemediation.JustificationRemediation')"></textarea>
+          <app-field-error [error]="getFieldError('PlanningRemediation.JustificationRemediation')" />
+        </div>
+        }
       </div>
+
+      <!-- Área executora -->
+      <div class="form-group half">
+        <label class="form-label" for="executor-area">
+          Área executora
+          <span class="form-hint">(Área que executará ou apoiará a mudança.)</span>
+        </label>
+        <select class="form-control" id="executor-area" [(ngModel)]="formData.planningExecutation.TechnologyArea"
+          name="planningExecutation.TechnologyArea" required (blur)="onFieldBlur('planningExecutation.TechnologyArea')"
+          [class.error]="isFieldInvalid('planningExecutation.TechnologyArea')">
+          <option value="">Selecione...</option>
+          @for (area of technologyAreaOptions; track area.value) {
+          <option [value]="area.value">{{ area.label }}</option>
+          }
+        </select>
+        <app-field-error [error]="getFieldError('planningExecutation.TechnologyArea')" />
+      </div>
+
+      <!-- URL do Sistema e Repositório Git (condicionais) -->
+      @if (shouldShowUrlAndGitFields()) {
+      <div class="step2-row step2-row-2col">
+        <div class="form-group">
+          <label class="form-label" for="system-url">
+            URL do sistema
+          </label>
+          <input type="url" class="form-control" id="system-url" [(ngModel)]="formData.impactCategory.SystemUrl"
+            name="impactCategory.SystemUrl" placeholder="https://sistema.exemplo.com"
+            [required]="shouldShowUrlAndGitFields()" (blur)="onFieldBlur('impactCategory.SystemUrl')"
+            [class.error]="isFieldInvalid('impactCategory.SystemUrl')" spellcheck="false" />
+          <small class="hint">Endereço web do sistema</small>
+          <app-field-error [error]="getFieldError('impactCategory.SystemUrl')" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="git-repo">
+            Repositório Git
+          </label>
+          <input type="text" class="form-control" id="git-repo" [(ngModel)]="formData.impactCategory.GitRepository"
+            name="impactCategory.GitRepository" placeholder="https://gitlab.com/repo"
+            [required]="shouldShowUrlAndGitFields()" (blur)="onFieldBlur('impactCategory.GitRepository')"
+            [class.error]="isFieldInvalid('impactCategory.GitRepository')" spellcheck="false" />
+          <small class="hint">URL do repositório</small>
+          <app-field-error [error]="getFieldError('impactCategory.GitRepository')" />
+        </div>
+      </div>
+      }
     </fieldset>
     }
 
-    <!-- Passo 9: Anexos -->
-    @if (currentStep === 9) {
-    <fieldset class="form-section" aria-labelledby="step9-title">
-      <legend id="step9-title">9. Anexos (Opcional)</legend>
+    <!-- ======================================== -->
+    <!-- PASSO 6: ANEXOS (condicional)             -->
+    <!-- ======================================== -->
+    @if (currentStep === 6) {
+    <fieldset [disabled]="isLoading" class="form-section">
+      <legend>6. Anexos {{ isEditMode ? '' : '(opcional)' }}</legend>
 
+      @if (isEditMode) {
+      <div class="form-info-box info-attachment">
+        <p><strong>Atenção:</strong> Os anexos não podem ser alterados nesta edição.</p>
+        <p>Caso precise atualizar ou remover um anexo, entre em contato com o suporte.</p>
+      </div>
+      } @else {
       <div class="form-info-box">
-        <p><strong>Importante:</strong> Apenas arquivos ZIP são permitidos.
-          Tamanho máximo: <strong>5MB</strong></p>
+        <p><strong>Importante:</strong> Apenas arquivos ZIP são permitidos. Tamanho máximo: <strong>5MB</strong></p>
       </div>
 
       <div class="form-group">
         <label class="form-label" for="attachments">
-          Selecione o Arquivo ZIP
+          Selecione o arquivo ZIP
           <span class="form-hint">(Opcional - apenas .zip é permitido)</span>
         </label>
 
@@ -464,7 +686,6 @@
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
             </svg>
             <p class="file-upload-text">Clique para selecionar arquivo ZIP</p>
-            <p class="file-upload-subtext">Opcional - apenas arquivos .zip são permitidos</p>
           </div>
           <input #fileInput type="file" id="attachments" (change)="onFileSelected($event)" accept=".zip" hidden>
         </div>
@@ -490,10 +711,20 @@
         </p>
         }
       </div>
+      }
     </fieldset>
     }
 
-    <!-- Navegação -->
+    <!-- Botões auxiliares -->
+    @if (!isEditMode) {
+    <div class="container-reset">
+      <button type="button" class="btn btn-secondary reset" (click)="resetForm()" [disabled]="isLoading">
+        <mat-icon>delete</mat-icon> Limpar formulário
+      </button>
+    </div>
+    }
+
+    <!-- Navegação principal -->
     <div class="form-navigation">
       @if (currentStep > 1) {
       <button type="button" class="btn btn-secondary" (click)="previousStep()">
@@ -501,37 +732,47 @@
       </button>
       }
 
-      @if (currentStep < totalSteps) { <button type="button" class="btn btn-primary" (click)="nextStep()"
-        [disabled]="!isStepValid(currentStep)">
+      @if (currentStep < totalSteps) { <button type="button" class="btn btn-primary" (click)="nextStep(requestForm)"
+        [disabled]="!stepValid || isLoading">
         Próximo <mat-icon>arrow_forward</mat-icon>
         </button>
         }
 
         @if (currentStep === totalSteps) {
-        <button type="submit" class="btn btn-primary" [disabled]="isLoading || !requestForm.valid">
+        <button type="submit" class="btn btn-primary" [disabled]="!isFormValid() || isLoading">
           @if (!isLoading) {
-          <mat-icon>send</mat-icon> Enviar Solicitação RDM
+          @if (isEditMode) {
+          <mat-icon>save</mat-icon> Salvar Alterações
           } @else {
-          <span class="spinner"></span> Enviando...
+          <mat-icon>send</mat-icon> Enviar solicitação RDM
+          }
+          } @else {
+          <span class="spinner"></span> {{ isEditMode ? 'Salvando...' : 'Enviando...' }}
           }
         </button>
         }
     </div>
 
-    <!-- Mensagens -->
-@if (errorMessages && errorMessages.length > 0) {
-<div class="alert alert-error" role="alert">
-  <mat-icon>error</mat-icon>
-  <div class="error-content">
-    <p>Foram encontrados os seguintes erros:</p>
-    <ul>
-      @for (msg of errorMessages; track $index) {
-      <li>{{ msg }}</li>
-      }
-    </ul>
-  </div>
-</div>
-}
+    <!-- Mensagens de erro gerais -->
+    @if (errorMessages.length > 0) {
+    <div class="alert alert-error" role="alert">
+      <mat-icon>error</mat-icon>
+      <div class="error-content">
+        <p>Foram encontrados os seguintes erros:</p>
+        <ul>
+          @for (msg of errorMessages; track $index) {
+          <li>{{ msg }}</li>
+          }
+        </ul>
+      </div>
+    </div>
+    }
+
+    @if (errorMessage) {
+    <div class="alert alert-error" role="alert">
+      <mat-icon>error</mat-icon> {{ errorMessage }}
+    </div>
+    }
 
     @if (successMessage) {
     <div class="alert alert-success" role="alert">
@@ -540,95 +781,108 @@
     }
   </form>
 
-  <!-- Reset -->
-  <footer class="form-footer">
-    <button type="button" class="btn btn-secondary" (click)="resetForm()" [disabled]="isLoading">
-      <mat-icon>delete</mat-icon> Limpar Formulário
-    </button>
+  <!-- ======================================== -->
+  <!-- MODAIS                                    -->
+  <!-- ======================================== -->
 
-    <p class="required-info">
-      <span class="required">*</span> Campos obrigatórios
-    </p>
-  </footer>
-
-  <!-- Modal de Sucesso -->
-  @if (showSuccessModal) {
-  <div class="modal-overlay" role="dialog" aria-modal="true" (click)="closeSuccessModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <div class="modal-success-icon">✓</div>
-      <h2>Solicitação Enviada com Sucesso!</h2>
-
-      <p>Sua solicitação RDM foi registrada e está em análise.</p>
-
-      <div class="solicitation-info">
-        <p><strong>Ticket:</strong> <code class="ticket-code"> {{ solicitationTicket }}</code></p>
+  <!-- Modal de ajuda (apenas criação, mas pode ser útil também na edição) -->
+  @if (showHelpModal) {
+  <app-modal [visible]="showHelpModal" title="Entenda os tipos de RDM" (closed)="closeHelpModal()" size="medium"
+    [showFooter]="true" buttonText="Entendi">
+    <div class="help-content">
+      <div class="help-item">
+        <strong>Emergencial:</strong>
+        <span>Usada quando o serviço está fora do ar ou com problema grave e precisa ser resolvido o mais rápido
+          possível para evitar impactos.</span>
       </div>
-
-      <p>Você pode acompanhar o status através da seção <strong>"Minhas Solicitações"</strong>.</p>
-      <p>Você receberá notificações sobre as atualizações.</p>
-
-      <div class="modal-actions">
-        <button class="btn btn-primary" (click)="closeSuccessModal()">Entendido</button>
-        <button class="btn btn-secondary" (click)="resetAndClose()">Enviar Nova Solicitação</button>
+      <div class="help-item">
+        <strong>Normal:</strong>
+        <span>Usada para mudanças planejadas que podem seguir o fluxo padrão de aprovação.</span>
+      </div>
+      <div class="help-item">
+        <strong>Padrão:</strong>
+        <span>Usada para mudanças já conhecidas, recorrentes e de baixo risco.</span>
       </div>
     </div>
-  </div>
+  </app-modal>
   }
 
-  <!-- Modal de Busca -->
-  @if (showSearchModal) {
-  <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="search-modal-title"
+  <!-- Modal de busca (apenas criação) -->
+  @if (!isEditMode && showSearchModal) {
+  <div class="clone-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="clone-modal-title"
     (click)="closeSearchModal()">
-    <div class="modal-content modal-lg" (click)="$event.stopPropagation()">
-      <header class="modal-header">
-        <h3 id="search-modal-title">Buscar RDM</h3>
-        <button class="modal-close" (click)="closeSearchModal()" aria-label="Fechar" type="button">
+
+    <div class="clone-modal-box" (click)="$event.stopPropagation()">
+
+      <!-- Cabeçalho -->
+      <div class="clone-modal-header">
+        <div class="clone-modal-header-text">
+          <h3 id="clone-modal-title">Clonar RDM</h3>
+          <p>O formulário será preenchido com os dados da RDM encontrada.</p>
+        </div>
+        <button class="clone-modal-close" (click)="closeSearchModal()" aria-label="Fechar" type="button">
           <mat-icon>close</mat-icon>
         </button>
-      </header>
+      </div>
 
-      <div class="modal-body">
-        <div class="search-modal-content">
-          <div class="search-input-group">
-            <label for="ticket-search" class="form-label">
-              Digite o código do ticket da RDM existente:
-            </label>
-            <div class="input-with-button">
-              <input type="text" id="ticket-search" [(ngModel)]="searchTicket" (input)="onTicketInput()"
-                placeholder="Ex: RDM-20260107-7d887283" class="form-control" (keyup.enter)="searchExistingRDM()"
-                [disabled]="isSearching" />
-              <button type="button" class="btn btn-search" (click)="searchExistingRDM()"
-                [disabled]="!searchTicket || isSearching">
-                @if (isSearching) {
-                <span class="spinner spinner-small"></span>
-                } @else {
-                <mat-icon>search</mat-icon>
-                }
-                Buscar
-              </button>
-            </div>
-            <p class="form-hint">Cole o código completo do ticket (incluindo o prefixo "RDM-")</p>
+      <!-- Corpo -->
+      <div class="clone-modal-body">
+
+        <!-- Alerta de segurança -->
+        <div class="clone-info-alert" role="note">
+          <mat-icon>info</mat-icon>
+          <p>Por questões de segurança, é permitido clonar apenas RDMs criadas por você.</p>
+        </div>
+
+        <!-- Linha de busca -->
+        <div class="clone-search-row">
+          <div style="flex: 1;">
+            <label for="ticket-search">Digite o código do ticket da RDM existente:</label>
+            <input type="text" id="ticket-search" [(ngModel)]="searchTicket" (input)="onTicketInput()"
+              placeholder="Ex: RDM-20260107-7d887283" class="form-control" (keyup.enter)="searchExistingRDM()"
+              [disabled]="isSearching" />
           </div>
+          <button type="button" class="btn btn-search" (click)="searchExistingRDM()"
+            [disabled]="!searchTicket || isSearching">
+            @if (isSearching) {
+            <span class="spinner spinner-small"></span>
+            } @else {
+            <mat-icon>search</mat-icon>
+            }
+            Buscar
+          </button>
+        </div>
 
-          @if (searchError) {
-          <div class="alert alert-error" role="alert">
-            <mat-icon>error</mat-icon> {{ searchError }}
-          </div>
-          }
+        <p class="form-hint" style="margin-top: -8px; margin-bottom: 12px;">
+          Cole o código completo do ticket (incluindo o prefixo "RDM-")
+        </p>
 
-          @if (foundRDM) {
-          <div class="found-rdm-info">
-            <div class="alert alert-success">
+        <!-- Erro de busca -->
+        @if (searchError) {
+        <div class="clone-alert-error" role="alert">
+          <mat-icon>error</mat-icon> {{ searchError }}
+        </div>
+        }
+
+        <!-- Resultado em 2 colunas -->
+        @if (foundRDM) {
+        <div class="clone-result-grid">
+
+          <!-- Coluna esquerda: sucesso + detalhes -->
+          <div class="clone-result-left">
+            <div class="clone-alert-success">
               <mat-icon>check_circle</mat-icon> RDM encontrada!
             </div>
 
-            <div class="rdm-preview">
-              <h4>Detalhes da RDM encontrada:</h4>
-              <dl class="rdm-preview-details">
+            <div class="clone-rdm-details">
+              <p class="clone-details-title">Detalhes da RDM encontrada:</p>
+              <dl>
                 <dt>Ticket:</dt>
                 <dd>{{ foundRDM.ticket }}</dd>
                 <dt>Título:</dt>
-                <dd>{{ foundRDM.identification?.title || 'N/A' }}</dd>
+                <dd class="clone-rdm-title" [title]="foundRDM.identification?.title || 'N/A'">
+                  {{ foundRDM.identification?.title || 'N/A' }}
+                </dd>
                 <dt>Tipo:</dt>
                 <dd>{{ foundRDM.identification?.type || 'N/A' }}</dd>
                 <dt>Área:</dt>
@@ -636,20 +890,23 @@
                 <dt>Data:</dt>
                 <dd>{{ foundRDM.date | date:'dd/MM/yyyy' }}</dd>
               </dl>
+            </div>
+          </div>
 
-              <div class="preview-warning" role="alert">
-                <mat-icon>warning</mat-icon>
-                <p>Ao clicar em "Copiar Dados", todos os campos do formulário atual serão preenchidos com os dados desta
-                  RDM.</p>
-              </div>
+          <!-- Coluna direita: aviso + botões -->
+          <div class="clone-result-right">
+            <div class="clone-warning" role="alert">
+              <mat-icon>warning</mat-icon>
+              <p>Ao clicar em "Clonar RDM", todos os campos do formulário atual serão substituídos pelos dados desta
+                RDM.</p>
             </div>
 
-            <div class="modal-actions">
+            <div class="clone-actions">
               <button type="button" class="btn btn-secondary" (click)="copyRDMData()" [disabled]="isCopying">
                 @if (isCopying) {
                 <span class="spinner spinner-small"></span> Copiando...
                 } @else {
-                <mat-icon>content_copy</mat-icon> Copiar Dados
+                <mat-icon>content_copy</mat-icon> Clonar RDM
                 }
               </button>
               <button type="button" class="btn btn-primary" (click)="closeSearchModal()">
@@ -657,8 +914,97 @@
               </button>
             </div>
           </div>
+
+        </div>
+        }
+      </div>
+
+    </div>
+  </div>
+  }
+
+  <!-- Modal de cancelamento (apenas edição) -->
+  @if (isEditMode && showCancelModalVisible) {
+  <div class="custom-modal-overlay" (click)="onCancelModalClosed()">
+    <div class="custom-modal-content" (click)="$event.stopPropagation()">
+      <div class="custom-modal-header">
+        <h3>{{ hasUnsavedChanges() ? 'Cancelar Edição' : 'Sair da Edição' }}</h3>
+        <button type="button" class="custom-modal-close" (click)="onCancelModalClosed()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="custom-modal-body">
+        <mat-icon class="modal-warning-icon">warning</mat-icon>
+        <h4>
+          @if (hasUnsavedChanges()) {
+          Tem certeza que deseja cancelar a edição?
+          } @else {
+          Tem certeza que deseja sair da edição?
+          }
+        </h4>
+
+        @if (hasUnsavedChanges()) {
+        <div class="cancel-warning">
+          <p><strong>Atenção:</strong> Todas as alterações não salvas serão perdidas.</p>
+        </div>
+        } @else {
+        <div class="cancel-info">
+          <p><strong>Nenhuma alteração detectada.</strong> Você pode sair sem perder dados.</p>
+        </div>
+        }
+
+        <div class="cancel-details">
+          <p><strong>Solicitação:</strong> {{ ticket }}</p>
+          <p><strong>Título:</strong> {{ formData.identification.Title }}</p>
+          @if (hasUnsavedChanges()) {
+          <p class="has-changes">
+            <mat-icon>edit</mat-icon>
+            <strong>Status:</strong> Alterações não salvas detectadas
+          </p>
+          } @else {
+          <p class="no-changes">
+            <mat-icon>check_circle</mat-icon>
+            <strong>Status:</strong> Nenhuma alteração feita
+          </p>
           }
         </div>
+      </div>
+      <div class="custom-modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="onCancelModalClosed()">
+          <mat-icon>arrow_back</mat-icon>
+          @if (hasUnsavedChanges()) {
+          Continuar Editando
+          } @else {
+          Continuar
+          }
+        </button>
+        <button type="button" class="btn btn-danger" (click)="confirmCancelEdit()">
+          <mat-icon>delete</mat-icon>
+          @if (hasUnsavedChanges()) {
+          Descartar Alterações
+          } @else {
+          Sair
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Modal de Sucesso (comum) -->
+  @if (showSuccessModal) {
+  <div class="modal-overlay" role="dialog" (click)="closeSuccessModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-success-icon">✓</div>
+      <h2>Solicitação {{ isEditMode ? 'Atualizada' : 'Enviada' }} com Sucesso!</h2>
+      <p>Sua solicitação RDM foi {{ isEditMode ? 'atualizada' : 'registrada' }} e está em análise.</p>
+      <div class="solicitation-info">
+        <p><code class="ticket-code">{{ isEditMode ? ticket : solicitationTicket }}</code></p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" (click)="closeSuccessModal()">
+          <mat-icon>check</mat-icon> Entendido
+        </button>
       </div>
     </div>
   </div>

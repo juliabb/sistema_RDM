@@ -2,9 +2,12 @@
 import { Component } from '@angular/core';
 import { LoginComponent } from './login/login';
 import { RegisterComponent } from './register/register';
-import { AuthService } from '../../services/auth-services';
+import { AuthService } from '../../services/auth-service';
 import { Router } from '@angular/router';
 import { OnInit } from '@angular/core';
+import { ThemeMode, ThemeService } from '../../services/theme.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-auth-container',
@@ -14,7 +17,7 @@ import { OnInit } from '@angular/core';
     <div class="container">
       <div class="divider background-image-section">
         <div class="logo">
-          <img src="img/logo-prodesp-branco.svg" alt="Logo Prodesp" class="logo-img" />
+          <img src="img/shiftflow_branco.png" alt="Logo ShiftFlow" class="logo-img" />
         </div>
         <div class="text">
           <div class="title">
@@ -25,13 +28,13 @@ import { OnInit } from '@angular/core';
       </div>
 
       <div class="right">
-        @if (isLoginMode) {
-        <app-login (toggleMode)="toggleMode()"></app-login>
+            @if (isLoginMode) {
+          <app-login (toggleMode)="toggleMode()"></app-login>
         } @else {
-        <app-register
-          (toggleMode)="toggleMode()"
-          (registerSuccess)="onRegisterSuccess()"
-        ></app-register>
+          <app-register
+            (toggleMode)="toggleMode()"
+            (registerSuccess)="onRegisterSuccess()"
+          ></app-register>
         }
       </div>
     </div>
@@ -40,14 +43,33 @@ import { OnInit } from '@angular/core';
 })
 export class AuthContainerComponent implements OnInit {
   isLoginMode = true;
+  isDark = false;
 
-  constructor(private authService: AuthService, private router: Router) {}
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private authService: AuthService,
+    private router: Router,
+    private themeService: ThemeService,
+  ) {}
 
   ngOnInit() {
     // Se já está logado e está na página de login, redireciona
     if (this.authService.isLogged() && (this.router.url === '/' || this.router.url === '/login')) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/user']);
     }
+
+    // Assina as mudanças de tema
+    this.themeService.currentTheme$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((themeMode: ThemeMode) => {
+        this.isDark = themeMode === 'dark';
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   toggleMode() {
@@ -57,6 +79,6 @@ export class AuthContainerComponent implements OnInit {
   onRegisterSuccess() {
     setTimeout(() => {
       this.isLoginMode = true;
-    }, 3000);
+    }, 4000);
   }
 }

@@ -1,3 +1,5 @@
+@import './app/shared/styles/status-badges.css';
+
 /* ============================================
    RESET E CONFIGURAÇÕES GLOBAIS
    ============================================ */
@@ -19,89 +21,146 @@ body {
 }
 
 /* ============================================
-   VARIÁVEIS CSS (CSS CUSTOM PROPERTIES)
+   VARIÁVEIS CSS GLOBAIS
    ============================================ */
 
 :root {
-  /* ===== CORES PRINCIPAIS (PALETA ROXO) ===== */
-  --primary-900: #2e0545;
-  --primary-800: #3a065a;
-  --primary-700: #500878;
-  --primary-600: #6a1c9a;
-  --primary-500: #8431bb;
-  --primary-400: #9f4edc;
-  --primary-300: #c184f0;
-  --primary-200: #e0c2f8;
-  --primary-100: #f0e6f5;
-  --primary-50: #f9f5fd;
+/* ===== CORES PRINCIPAIS (PALETA SHIFTFLOW) ===== */
+/* Baseada na logo fictícia: ciano + roxo em fundo escuro */
 
-  /* ===== CORES NEUTRAS ===== */
-  --white: #ffffff;
-  --black: #000000;
-  --gray-900: #111827;
-  --gray-800: #1f2937;
-  --gray-700: #374151;
-  --gray-600: #4b5563;
-  --gray-500: #6b7280;
-  --gray-400: #9ca3af;
-  --gray-300: #d1d5db;
-  --gray-200: #e5e7eb;
-  --gray-100: #f3f4f6;
-  --gray-50: #f9fafb;
+--primary-900: #062b36;
+--primary-800: #074356;
+--primary-700: #006b86;
+--primary-600: #0088a8;
+--primary-500: #00b8d9;
+--primary-400: #16d3ef;
+--primary-300: #67e8f9;
+--primary-200: #a5f3fc;
+--primary-100: #cffafe;
+--primary-50: #ecfeff;
 
-  /* ===== CORES DE ESTADO (FEEDBACK) ===== */
-  --success-color: #10b981;
-  --success-light: #d1fae5;
-  --success-dark: #065f46;
+/* Cor secundária/acento da marca */
+--secondary-900: #2e1065;
+--secondary-800: #4c1d95;
+--secondary-700: #5b21b6;
+--secondary-600: #6d28d9;
+--secondary-500: #7c3aed;
+--secondary-400: #8b5cf6;
+--secondary-300: #a78bfa;
+--secondary-200: #ddd6fe;
+--secondary-100: #ede9fe;
+--secondary-50: #f5f3ff;
 
-  --warning-color: #f59e0b;
-  --warning-light: #fef3c7;
-  --warning-dark: #92400e;
+/* === CORES ESPECÍFICAS PARA DARKMODE / SISTEMA === */
+--title-dark: #006b86;
+--btn-auxiliaty: #f8fafc;
+--btn-hover: #00a3c4;
+--btn-hover-secondary: #062b36;
+--btn-hover-secondary-ligth: #67e8f9;
+--link-system: #0077b6;
+--background-pagination: #f1f5f9;
+--pagination-text: #020617;
+--stats-text: #006b86;
+--logo-saude: white;
+--btn-secundary-hover-text: #f8fafc;
+--modal-title-color: #006b86;
+--error-dark-modal: #7f1d1d;
+--white-page: #e8f7fb;
+--change-password-bk: #f8fafc;
 
-  --error-color: #ef4444;
-  --error-light: #fee2e2;
-  --error-dark: #991b1b;
+/* ===== CORES NEUTRAS ===== */
+--white: #ffffff;
+--black: #000000;
+--gray-900: #0f172a;
+--gray-800: #1e293b;
+--gray-700: #334155;
+--gray-600: #475569;
+--gray-500: #64748b;
+--gray-400: #94a3b8;
+--gray-300: #cbd5e1;
+--gray-200: #e2e8f0;
+--gray-100: #f1f5f9;
+--gray-50: #f8fafc;
 
-  --info-color: #3b82f6;
-  --info-light: #dbeafe;
-  --info-dark: #1e40af;
+/* ===== CORES DE ESTADO (FEEDBACK) ===== */
 
-  /* ===== CORES AUXILIARES ===== */
-  --auxiliary-color: #041e42;
-  --auxiliary-light: #74d2e7;
+--success-color: #15803d;
+--success-light: #dcfce7;
+--success-dark: #166534;
+--success-border: #66bb6a;
 
-  /* ===== CORES PARA SIDEBAR ===== */
-  --sidebar-bg: var(--primary-900);
-  --sidebar-hover: rgba(255, 255, 255, 0.05);
-  --sidebar-active: linear-gradient(90deg, var(--primary-700) 0%, var(--primary-600) 100%);
-  --sidebar-text: var(--gray-100);
-  --sidebar-text-muted: var(--gray-300);
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-accent: var(--auxiliary-light);
+--warning-color: #f59e0b;
+--warning-light: #fffbeb;
+--warning-dark: #78350f;
+--warning-border: #fbbf24;
 
-  /* ===== CORES PARA HEADER ===== */
-  --header-bg: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-800) 100%);
-  --header-text: var(--white);
-  --header-border: rgba(255, 255, 255, 0.1);
+--error-color: #dc2626;
+--error-light: #fee2e2;
+--error-dark: #7f1d1d;
+--error-theme: #dc2626;
 
-  /* ===== CORES PARA TABELAS ===== */
-  --table-header-bg: var(--gray-50);
-  --table-row-hover: var(--gray-100);
-  --table-border: var(--gray-200);
-  --table-text: var(--gray-700);
-  --table-text-muted: var(--gray-600);
+--caveat-color: #0077b6;
+--caveat-light: #e0f7ff;
+--caveat-border: #38bdf8;
 
-  /* ===== CORES PARA BADGES/STATUS ===== */
-  --status-pending-bg: #fff3cd;
-  --status-pending-text: #856404;
-  --status-approved-bg: #d4edda;
-  --status-approved-text: #155724;
-  --status-rejected-bg: #f8d7da;
-  --status-rejected-text: #721c24;
-  --status-analysis-bg: #d1ecf1;
-  --status-analysis-text: #0c5460;
-  --status-waiting-bg: #e2e3e5;
-  --status-waiting-text: #383d41;
+/* ===== Info/Ajuda ===== */
+
+--info-color: #6d28d9;
+--info-light: #ede9fe;
+--info-dark: #4c1d95;
+
+/* ===== CORES AUXILIARES ===== */
+
+--auxiliary-color: #6d28d9;
+--auxiliary-light: #ede9fe;
+--auxiliaty-text: #020617;
+
+/* ==============================
+   Foco acessível para botões/inputs
+   ============================== */
+--focus-ring: rgba(0, 184, 217, 0.35);
+
+/* ===== CORES PARA SIDEBAR ===== */
+--sidebar-bg: #020617;
+--sidebar-hover: rgba(255, 255, 255, 0.07);
+--sidebar-active: linear-gradient(90deg, var(--primary-700) 0%, var(--secondary-600) 100%);
+--sidebar-text: var(--gray-100);
+--sidebar-text-muted: var(--gray-300);
+--sidebar-border: rgba(255, 255, 255, 0.08);
+--sidebar-accent: var(--primary-300);
+
+/* ===== CORES PARA HEADER ===== */
+--header-bg: linear-gradient(135deg, #020617 0%, var(--primary-800) 55%, var(--secondary-700) 100%);
+--header-text: var(--white);
+--header-border: rgba(255, 255, 255, 0.1);
+
+/* ===== CORES PARA TABELAS ===== */
+--table-header-bg: var(--gray-50);
+--table-row-hover: #ecfeff;
+--table-border: var(--gray-200);
+--table-text: var(--gray-700);
+--table-text-muted: var(--gray-600);
+
+/* ===== CORES PARA BADGES/STATUS ===== */
+
+--status-pending-bg: var(--warning-light);
+--status-pending-text: var(--warning-dark);
+
+--status-approved-bg: var(--success-light);
+--status-approved-text: var(--success-dark);
+
+--status-rejected-bg: var(--error-light);
+--status-rejected-text: var(--error-dark);
+
+--status-analysis-bg: var(--info-light);
+--status-analysis-text: var(--info-dark);
+
+--status-waiting-bg: var(--gray-100);
+--status-waiting-text: var(--gray-700);
+
+--status-corrigir-bg: var(--secondary-100);
+--status-corrigir-text: var(--secondary-700);
+--status-corrigir-border: var(--secondary-400);
 
   /* ===== TAMANHOS DE ÍCONES ===== */
   --icon-size-xs: 16px;
@@ -113,9 +172,9 @@ body {
   --icon-size-3xl: 48px;
 
   /* ===== GRADIENTES ===== */
-  --gradient-primary: linear-gradient(135deg, var(--primary-900) 0%, var(--primary-700) 100%);
-  --gradient-subtle: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-600) 100%);
-  --gradient-light: linear-gradient(135deg, var(--primary-100) 0%, var(--white) 100%);
+--gradient-primary: linear-gradient(135deg, #020617 0%, var(--primary-700) 55%, var(--secondary-600) 100%);
+--gradient-subtle: linear-gradient(135deg, var(--primary-800) 0%, var(--primary-500) 100%);
+--gradient-light: linear-gradient(135deg, var(--primary-50) 0%, var(--white) 100%);
 
   /* ===== MODAL ===== */
   --modal-overlay-bg: rgba(0, 0, 0, 0.5);
@@ -130,6 +189,11 @@ body {
   --spacing-lg: 1.5rem; /* 24px */
   --spacing-xl: 2rem; /* 32px */
   --spacing-xxl: 3rem; /* 48px */
+
+  /* ===== altura do header global===== */
+  --app-header-height: 70px;
+  --app-header-height-mobile: 60px;
+  --rdm-header-gap: 16px;
 
   /* ===== BORDAS ===== */
   --border-radius-xs: 2px;
@@ -497,7 +561,7 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(132, 49, 187, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 184, 217, 0.16);
 }
 
 /* Estados do input */
@@ -576,7 +640,6 @@ select {
 .error-message {
   background-color: var(--error-light);
   border-color: var(--error-color);
-  color: var(--error-dark);
 }
 
 .success-message {
@@ -624,7 +687,7 @@ select {
   line-height: 1;
   white-space: nowrap;
 
-  /* Para desktop apenas - user-select */
+  /* Para desktop apenas */
   user-select: none;
 
   /* Remove estilos padrão */
@@ -632,7 +695,7 @@ select {
   -webkit-appearance: none;
   appearance: none;
 
-  /* Remove outline (será substituído por :focus-visible) */
+  /* Remove outline */
   outline: none;
 }
 
@@ -651,7 +714,7 @@ select {
   box-shadow: none !important;
 }
 
-/* Acessibilidade - foco visível para teclado */
+/* Acessibilidade */
 .btn:focus-visible {
   outline: 2px solid var(--primary-500);
   outline-offset: 2px;
@@ -659,28 +722,28 @@ select {
 
 /* Botão Primário */
 .btn-primary {
-  background-color: var(--primary-700);
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);
   color: var(--white);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-800);
-  border-color: var(--primary-800);
+  background: linear-gradient(135deg, var(--primary-800) 0%, var(--secondary-600) 100%);
+  border-color: transparent;
 }
 
 /* Botão Secundário */
 .btn-secondary {
   background-color: transparent;
   color: var(--primary-700);
-  border-color: var(--primary-700);
+  border-color: var(--primary-600);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--primary-100);
+  background-color: var(--primary-50);
   color: var(--primary-800);
-  border-color: var(--primary-800);
+  border-color: var(--primary-700);
 }
 
 /* Botão de Sucesso */
@@ -827,6 +890,11 @@ select {
   width: 50%;
 }
 
+.logo-img {
+   width: 420px;
+   margin: auto;
+}
+
 /* ============================================
    CORREÇÕES ESPECÍFICAS PARA DESKTOP
    ============================================ */
@@ -909,7 +977,7 @@ input::-ms-reveal {
   font-size: var(--font-size-sm);
 }
 
-/* Julia Benedicto - 2025 :) */
+/* Julia Benedicto - 2025/2026 :) */
 
 /* ============================================
    ESTILOS PARA ESTADOS VAZIOS
@@ -975,10 +1043,188 @@ body {
 
 /* DASHBOARD GLOBAL STYLES */
 
+/* Largura padrão da sidebar recolhida */
 .container-content-dashboard {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+  margin-left: 70px;
+  width: calc(100% - 70px);
+  transition:
+    margin-left var(--transition-base),
+    width var(--transition-base);
+}
+
+/* Quando a sidebar está expandida (hover) */
+.sidebar:hover ~ .main-content .container-content-dashboard,
+.sidebar:hover ~ app-admin .admin-main-content .container-content-dashboard,
+.app-container:hover .sidebar ~ .admin-main-content .container-content-dashboard {
   margin-left: 280px;
-  min-height: 100vh;
+  width: calc(100% - 280px);
+}
+
+/* Quando não há sidebar */
+.container-content-dashboard.no-sidebar {
+  margin-left: 0 !important;
+  width: 100% !important;
+}
+
+/* Força todos os overlays do Angular Material a ficarem acima de qualquer elemento */
+.cdk-overlay-container,
+.cdk-global-overlay-wrapper {
+  z-index: 10000 !important;
+}
+
+/* Estilos para o header global */
+.logo-saude {
+  transition: width 0.2s ease;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 2rem auto;
+}
+
+.logo-login {
+  max-width: 250px;
+}
+
+.logo-register {
+  max-width: 240px;
+}
+
+/* ============================================
+   TEMA ESCURO (sobrescreve variáveis do :root)
+   ============================================ */
+/* Escuro Neutro (Tons de Cinza Puro) */
+body.dark-theme {
+  --white: #0f172a;
+  --gray-50: #111827;
+  --gray-100: #1e293b;
+  --gray-200: #334155;
+  --gray-300: #475569;
+  --gray-400: #64748b;
+  --gray-500: #94a3b8;
+  --gray-600: #cbd5e1;
+  --gray-700: #e2e8f0;
+  --gray-800: #f8fafc;
+  --gray-900: #ffffff;
+
+  --primary-900: #083344;
+  --primary-800: #155e75;
+  --primary-700: #0891b2;
+  --primary-600: #06b6d4;
+  --primary-500: #22d3ee;
+  --primary-400: #67e8f9;
+  --primary-300: #a5f3fc;
+
+  --secondary-900: #2e1065;
+  --secondary-800: #4c1d95;
+  --secondary-700: #6d28d9;
+  --secondary-600: #7c3aed;
+  --secondary-500: #8b5cf6;
+  --secondary-400: #a78bfa;
+  --secondary-300: #c4b5fd;
+
+  --success-light: #064e3b;
+  --warning-light: #78350f;
+  --error-light: #7f1d1d;
+  --info-light: #2e1065;
+
+  --sidebar-bg: #020617;
+  --sidebar-active: linear-gradient(90deg, var(--primary-700) 0%, var(--secondary-600) 100%);
+  --sidebar-accent: var(--primary-300);
+
+  --header-bg: linear-gradient(135deg, #020617 0%, #083344 55%, #4c1d95 100%);
+
+  --warning-dark: #fef3c7;
+  --auxiliaty-text: #e2e8f0;
+  --info-dark: #ddd6fe;
+  --title-dark: #67e8f9;
+  --btn-hover-secondary: #155e75;
+  --success-color: #66bb6a;
+  --error-theme: #ff4d4f;
+  --link-system: #67e8f9;
+  --background-pagination: #1e293b;
+  --pagination-text: #cbd5e1;
+  --stats-text: #67e8f9;
+  --modal-title-color: #67e8f9;
+  --error-dark-modal: #fee2e2;
+
+  --table-header-bg: #111827;
+  --table-row-hover: #164e63;
+  --table-border: #334155;
+}
+
+/* Responsivo */
+
+/* Em telas pequenas, sidebar fica sobreposta ou escondida – sem margem */
+@media (max-width: 768px) {
+  .container-content-dashboard {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Telas grandes (1280px+) */
+@media (min-width: 1280px) {
+  body {
+    font-size: 16px;
+  }
+
+  /* Tabela */
+  th,
+  td {
+    font-size: 15px;
+    padding: var(--spacing-md) var(--spacing-xl);
+  }
+
+  .ticket-badge {
+    font-size: 13px;
+  }
+
+  /* Formulário */
+  .form-control {
+    font-size: 16px;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .form-label {
+    font-size: 15px;
+  }
+
+  .form-section legend {
+    font-size: 20px;
+  }
+
+  .step-btn {
+    font-size: 14px;
+  }
+
+  .btn {
+    font-size: 16px;
+  }
+}
+
+/* Telas muito grandes (1600px+) */
+@media (min-width: 1600px) {
+  body {
+    font-size: 17px;
+  }
+
+  th,
+  td {
+    font-size: 16px;
+  }
+
+  .form-control {
+    font-size: 17px;
+  }
+
+  .form-label {
+    font-size: 16px;
+  }
+
+  .requests-header h2,
+  .form-title {
+    font-size: 28px;
+  }
 }

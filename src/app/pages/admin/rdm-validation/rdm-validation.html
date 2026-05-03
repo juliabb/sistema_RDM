@@ -1,0 +1,289 @@
+<div class="rdm-validation-container container-content-dashboard container-admin-painel">
+  <div class="section-header">
+    <h2>Validação Pós Implementação</h2>
+    <p>Gerencie as solicitações de RDM que aguardam validação após implementação</p>
+  </div>
+
+  <div class="container-btn-refresh">
+    <button class="btn btn-secondary" (click)="refreshData()" [disabled]="isLoading" title="Atualizar lista">
+      Atualizar
+    </button>
+  </div>
+
+  @if (errorMessage) {
+  <div class="alert alert-warning">
+    {{ errorMessage }}
+  </div>
+  }
+
+  <!-- Filtros -->
+  <div class="filters-section">
+    <div class="search-bar">
+      <div class="search-wrapper">
+        <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()"
+          placeholder="Buscar por RDM, solicitante, título ou resultado..." class="search-input">
+        @if (searchTerm) {
+        <button class="clear-search-btn" (click)="searchTerm = ''; applyFilters()" title="Limpar busca"
+          [disabled]="isLoading">
+          ×
+        </button>
+        }
+      </div>
+    </div>
+
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label for="statusFilter" class="filter-label">Status</label>
+        <select id="statusFilter" [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()" class="filter-select"
+          [disabled]="isLoading">
+          <option value="todos">Todos os status</option>
+          <option value="no-prazo">No prazo</option>
+          <option value="vencido">Vencido</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="resultadoFilter" class="filter-label">Resultado</label>
+        <select id="resultadoFilter" [(ngModel)]="resultadoFilter" (ngModelChange)="applyFilters()"
+          class="filter-select" [disabled]="isLoading">
+          <option value="todos">Todos os resultados</option>
+          <option value="cancelada">Cancelada</option>
+          <option value="sucesso">Sucesso</option>
+          <option value="sem-sucesso">Sem Sucesso</option>
+          <option value="com-ressalva">Com Ressalva</option>
+          <option value="aberto">Aberto</option>
+        </select>
+      </div>
+
+      @if (hasActiveFilters()) {
+      <button class="btn btn-sm btn-secondary clear-filters-btn" (click)="clearFilters()" [disabled]="isLoading">
+        Limpar Filtros
+      </button>
+      }
+
+      <button class="btn btn-sm btn-secondary refresh-btn" (click)="refreshData()" [disabled]="isLoading">
+        @if (isLoading) {
+        Carregando...
+        } @else {
+        Atualizar
+        }
+      </button>
+    </div>
+
+    <!-- Resumo de filtros e informações -->
+    <div class="filter-info">
+      <div class="search-info">
+        @if (isLoading) {
+        <span class="loading-indicator">Carregando...</span>
+        }
+      </div>
+
+      @if (hasActiveFilters()) {
+      <div class="filter-summary">
+        <span class="filter-summary-text">Filtros ativos: {{ getFilterSummary() }}</span>
+      </div>
+      }
+    </div>
+  </div>
+
+  @if (isLoading) {
+  <div class="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Carregando validações...</p>
+  </div>
+  } @else {
+  <div class="table-container">
+    <table class="rdm-validation-table">
+      <thead>
+        <tr>
+          <th>RDM</th>
+          <th>Solicitante</th>
+          <th>Título</th>
+          <th>Data Validade</th>
+          <th>Status</th>
+          <th>Resultado</th>
+          <th>Ações</th>
+          <th>Validador</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of filteredItems; track item.rdm) {
+        <tr>
+          <td class="ticket-number">
+            <span class="ticket-badge">{{ item.rdm }}</span>
+          </td>
+          <td>
+            <div class="requester">{{ item.solicitante }}</div>
+          </td>
+          <td class="rdm-title" [title]="item.titulo">{{ item.titulo }}</td>
+          <td>
+            <div class="date-cell">{{ formatDateDisplay(item.dataValidade) }}</div>
+          </td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(item.status).toLowerCase()">
+              {{ getStatusText(item.status) }}
+            </span>
+          </td>
+          <td>
+            @if (item.resultado) {
+            <span class="resultado-badge" [class]="getResultadoClass(item.resultado)">
+              {{ getResultadoLabel(item.resultado) }}
+            </span>
+            } @else {
+            <span class="resultado-pendente">Pendente</span>
+            }
+          </td>
+          <td class="actions">
+            <div class="action-buttons">
+              <!-- Botão Ver detalhes -->
+              <button class="btn-sm btn-view" (click)="viewDetails(item.rdm)" title="Ver detalhes completos">
+                <mat-icon>visibility</mat-icon>
+                <span class="btn-text">Ver</span>
+              </button>
+
+              <!-- Botão Resultado (abre modal direto) -->
+              <button class="btn-sm btn-resultado" (click)="openModal(item)" title="Definir resultado">
+                <mat-icon>assignment_turned_in</mat-icon>
+                <span class="btn-text">Resultado</span>
+              </button>
+            </div>
+          </td>
+          <td class="validador-cell">
+            @if (item.validador) {
+            <span class="validador-nome">{{ formatarNome(item.validador, true) }}</span>
+            } @else {
+            <span class="validador-placeholder">—</span>
+            }
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="8" class="empty-message">
+            Nenhum item encontrado para validação.
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginação com o componente reutilizável -->
+  <app-pagination [totalItems]="totalItems" [currentPage]="currentPage" [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions" [isLoading]="isLoading" (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-pagination>
+  }
+</div>
+
+<!-- Modal de Validação (Resultado) -->
+<app-modal [title]="'Definir Resultado da Validação'" [visible]="showResultModal"
+  [buttonText]="isProcessing ? 'Processando...' : 'Cancelar'" [showFooter]="false" size="large" (closed)="closeModal()">
+
+  <div class="modal-validation-content">
+    @if (selectedItem) {
+    <div class="rdm-info">
+      @if (selectedItem.resultado && selectedItem.resultado.toLowerCase() !== 'aberto' && !podeEditarItem(selectedItem))
+      {
+      <div class="alerta-permissao">
+        <mat-icon>info</mat-icon>
+        <span>
+          Este item já foi validado por<strong> {{ formatarNome(selectedItem.validador ?? '', true) }}</strong>.
+          Apenas o validador original pode editar as informações.
+        </span>
+      </div>
+      }
+
+      <div class="info-header">
+        <h3>Informações da RDM</h3>
+      </div>
+
+      <div class="info-grid">
+        <!-- Primeira linha: RDM e Solicitante -->
+        <div class="info-item">
+          <label>RDM:</label>
+          <strong>{{ selectedItem.rdm }}</strong>
+        </div>
+        <div class="info-item">
+          <label>Solicitante:</label>
+          <strong>{{ selectedItem.solicitante }}</strong>
+        </div>
+
+        <!-- Segunda linha: Título (ocupa toda largura) -->
+        <div class="info-item full-width">
+          <label>Título:</label>
+          <strong>{{ selectedItem.titulo }}</strong>
+        </div>
+
+        <!-- Terceira linha: Data Validade + Status (lado a lado) -->
+
+        <div class="info-row">
+          <div class="info-item info-col">
+            <label>Data Validade:</label>
+            <strong>{{ formatDateDisplay(selectedItem.dataValidade) }}</strong>
+          </div>
+          <div class="info-item info-col">
+            <label>Status:</label>
+            <span class="status-badge" [ngClass]="getStatusClass(selectedItem.status).toLowerCase()">
+              {{ getStatusText(selectedItem.status) }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Quarta linha: Resultado Selecionado (select) -->
+        <div class="info-item full-width">
+          <label>Resultado Selecionado:</label>
+          <select title="Resultado selecionado" class="resultado-select" [(ngModel)]="selectedResultado"
+            [disabled]="!podeEditarItem(selectedItem) || isProcessing" required>
+            <option value="" disabled selected>Selecione um resultado</option>
+            @for (opt of resultadoOptions; track opt.value) {
+            <option [value]="opt.value">{{ opt.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="validation-form">
+      <div class="form-header">
+        <h4>Observações (opcional)</h4>
+        <p class="form-description">
+          Adicione informações relevantes sobre a validação, se necessário.
+        </p>
+      </div>
+
+      <div class="form-group textarea-container">
+        <textarea [(ngModel)]="observacao" placeholder="Digite observações aqui..." rows="4" class="validation-textarea"
+          [readonly]="!podeEditarItem(selectedItem) || !editandoObservacao" [disabled]="isProcessing">
+  </textarea>
+
+        <button type="button" class="btn-edit" (click)="toggleEditarObservacao()"
+          [disabled]="!podeEditarItem(selectedItem) || isProcessing" mat-icon-button
+          [matTooltip]="!podeEditarItem(selectedItem) ? 'Você não tem permissão para editar este item' : (editandoObservacao ? 'Bloquear edição' : 'Habilitar edição')"
+          [attr.aria-label]="editandoObservacao ? 'Bloquear edição' : 'Habilitar edição'">
+          <mat-icon>{{ editandoObservacao ? 'lock' : 'edit' }}</mat-icon>
+        </button>
+      </div>
+
+      <div class="validador-info">
+        <label>Validador:</label>
+        <strong>
+          {{ selectedItem.validador ? formatarNome(selectedItem.validador, true) : formatarNome(validadorNome, true) }}
+        </strong>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" (click)="closeModal()" [disabled]="isProcessing">
+        Cancelar
+      </button>
+      <button class="btn btn-success" (click)="confirmarValidacao()"
+        [disabled]="!podeEditarItem(selectedItem) || isProcessing">
+        @if (isProcessing) {
+        Processando...
+        } @else {
+        Confirmar Validação
+        }
+      </button>
+    </div>
+    }
+  </div>
+</app-modal>

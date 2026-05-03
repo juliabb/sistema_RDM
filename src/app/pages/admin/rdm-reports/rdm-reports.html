@@ -1,0 +1,118 @@
+<div class="reports-container container-content-dashboard container-admin-painel">
+  <!-- SEÇÃO COMPLETA DA PÁGINA 1: Título + Filtros + Cards -->
+  <div id="secao-cards">
+    <h2>Relatórios Administrativos</h2>
+
+    <div class="filtros">
+      <div class="filtro-item">
+        <label for="sistema">Sistema/Serviço:</label>
+        <div class="select-wrapper">
+          <select id="sistema" class="filter-select" [(ngModel)]="selectedSystem"
+            (change)="onSystemChange(selectedSystem)">
+            <option value="">Todos</option>
+            <option *ngFor="let sys of allSystems" [value]="sys.systemService">
+              {{ sys.systemService }} ({{ sys.department }})
+            </option>
+          </select>
+          @if (selectedSystem) {
+          <button class="clear-select-btn" (click)="clearSystemFilter()" title="Limpar filtro" type="button">×</button>
+          }
+        </div>
+      </div>
+
+      <div class="filtro-item">
+        <label for="dataInicial">Data inicial:</label>
+        <input type="date" id="dataInicial" [(ngModel)]="dataInicial" (change)="filtrar()" />
+      </div>
+      <div class="filtro-item">
+        <label for="dataFinal">Data final:</label>
+        <input type="date" id="dataFinal" [(ngModel)]="dataFinal" (change)="filtrar()" />
+      </div>
+      <button (click)="voltarParaMesAtual()" class="btn btn-secondary btn_month">Mês Atual</button>
+
+      <div class="button-group-right" *ngIf="!isGeneratingPDF">
+        <button (click)="exportarPDF()" class="btn btn-danger btn-sm btn-pdf" [disabled]="isLoading">
+          <mat-icon>picture_as_pdf</mat-icon> PDF
+        </button>
+        <button (click)="exportarExcel()" class="btn btn-success btn-sm btn-excel" [disabled]="isLoading">
+          <mat-icon>download</mat-icon> Excel
+        </button>
+        <button (click)="atualizar()" class="btn btn-primary btn-sm" [disabled]="isLoading">
+          <mat-icon class="fas" [class.fa-sync]="!isLoading" [class.fa-spinner]="isLoading"
+            [class.fa-spin]="isLoading">refresh</mat-icon>
+          Atualizar
+        </button>
+      </div>
+    </div>
+
+    <!-- Cards (agora sem o ID duplicado) -->
+    <div class="cards-grid">
+      <div class="card">
+        <h3>Total de solicitações</h3>
+        <p class="card-number">{{ totalSolicitacoes }}</p>
+      </div>
+      <div class="card">
+        <h3>Padrão</h3>
+        <p class="card-number">{{ quantidadePadroes }}</p>
+      </div>
+      <div class="card">
+        <h3>Normal</h3>
+        <p class="card-number">{{ quantidadeNormais }}</p>
+      </div>
+      <div class="card">
+        <h3>Emergencial</h3>
+        <p class="card-number">{{ quantidadeEmergenciais }}</p>
+      </div>
+      <div class="card">
+        <h3>Aprovadas</h3>
+        <p class="card-number">{{ aprovadas }}</p>
+      </div>
+      <div class="card">
+        <h3>Reprovadas</h3>
+        <p class="card-number">{{ reprovadas }}</p>
+      </div>
+      <div class="card">
+        <h3>Executadas com sucesso</h3>
+        <p class="card-number">{{ executadaSucesso }}</p>
+      </div>
+      <div class="card">
+        <h3>Executadas com ressalva</h3>
+        <p class="card-number">{{ executadaRessalva }}</p>
+      </div>
+      <div class="card">
+        <h3>Executadas sem sucesso</h3>
+        <p class="card-number">{{ executadaSemSucesso }}</p>
+      </div>
+      <div class="card">
+        <h3>Canceladas</h3>
+        <p class="card-number">{{ cancelada }}</p>
+      </div>
+    </div>
+  </div> <!-- FIM de #secao-cards -->
+
+  <!-- Gráficos superiores (PÁGINA 2) -->
+  <div class="charts-grid" id="secao-graficos-superiores">
+    <div class="chart-container">
+      <h3>Tipos de Solicitação</h3>
+      <canvas #tipoChart></canvas>
+    </div>
+    <div class="chart-container">
+      <h3>Aprovações</h3>
+      <canvas #aprovacaoChart></canvas>
+    </div>
+    <div class="chart-container">
+      <h3>Status de Execução</h3>
+      <canvas #execucaoChart></canvas>
+    </div>
+  </div>
+
+  <!-- Gráfico horizontal de serviços (PÁGINA 3) -->
+  <div class="chart-row-full" id="secao-grafico-servicos">
+    <div class="chart-container chart-container-full" [style.height.px]="alturaGraficoServicos">
+      <h3>Solicitações por Sistema/Serviço</h3>
+      <div class="chart-wrapper-horizontal">
+        <canvas #servicosChart></canvas>
+      </div>
+    </div>
+  </div>
+</div>

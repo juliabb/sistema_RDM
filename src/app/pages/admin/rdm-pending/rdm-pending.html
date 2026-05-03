@@ -1,5 +1,5 @@
 <!-- src\app\pages\admin\rdm-pending\rdm-pending.html -->
-<div class="rdm-pending-container container-content-dashboard">
+<div class="rdm-pending-container container-content-dashboard container-admin-painel">
   <div class="section-header">
     <h2>RDM Pendentes</h2>
     <p>Gerencie as solicitações de RDM pendentes de aprovação</p>
@@ -21,10 +21,6 @@
     <div class="search-bar">
       <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchRDM()"
         placeholder="Buscar por ticket, solicitante, título ou status..." class="search-input">
-    </div>
-
-    <div class="page-info">
-      Mostrando {{ filteredRDM.length }} de {{ totalItems }} RDM(s)
     </div>
   </div>
 
@@ -62,11 +58,11 @@
           <td class="rdm-title">{{ rdm.title }}</td>
           <td>
             <div class="date-cell">
-    {{ formatDateLikeList(rdm.date) }}
+              {{ formatDateLikeList(rdm.date) }}
             </div>
           </td>
           <td>
-            <span class="status-badge" [class]="getStatusClass(rdm.status)">
+            <span class="status-badge" [ngClass]="getStatusClass(rdm.status).toLowerCase()">
               {{ rdm.status || 'Pendente' }}
             </span>
           </td>
@@ -95,26 +91,11 @@
     </table>
   </div>
 
-  @if (totalPages > 1) {
-  <div class="pagination">
-    <button class="btn btn-pagination" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)"
-      title="Página anterior">
-      ←
-    </button>
-
-    @for (page of pages; track page) {
-    <button class="btn btn-pagination" [class.active]="currentPage === page" (click)="changePage(page)"
-      [title]="'Ir para página ' + page">
-      {{ page }}
-    </button>
-    }
-
-    <button class="btn btn-pagination" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)"
-      title="Próxima página">
-      →
-    </button>
-  </div>
-  }
+  <!-- Paginação -->
+  <app-pagination [totalItems]="totalItems" [currentPage]="currentPage" [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions" [isLoading]="isLoading" (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-pagination>
   }
 
   <!-- Modal de Aprovação -->
@@ -193,8 +174,8 @@
     </div>
   </app-modal>
 
-  <!-- Modal de Rejeição -->
-  <app-modal [title]="'Confirmar Rejeição'" [visible]="showRejectModal"
+  <!-- Modal de Reprovação -->
+  <app-modal [title]="'Confirmar Reprovação'" [visible]="showRejectModal"
     [buttonText]="isProcessing ? 'Processando...' : 'Cancelar'" [showFooter]="false" size="medium"
     (closed)="closeModal()">
 
@@ -250,15 +231,15 @@
 
       <div class="rejection-form">
         <div class="form-header">
-          <h4>Motivo da Rejeição</h4>
+          <h4>Motivo da Reprovação</h4>
         </div>
 
         <p class="form-description">
-          Informe o motivo da rejeição para que o solicitante possa entender e corrigir os problemas:
+          Informe o motivo da reprovação para que o solicitante possa entender e corrigir os problemas:
         </p>
 
         <div class="form-group">
-          <textarea [(ngModel)]="rejectionReason" placeholder="Descreva o motivo da rejeição..." rows="4"
+          <textarea [(ngModel)]="rejectionReason" placeholder="Descreva o motivo da reprovação..." rows="4"
             class="rejection-textarea" [disabled]="isProcessing"></textarea>
 
           @if (!rejectionReason.trim() && !isProcessing) {
@@ -277,7 +258,7 @@
           @if (isProcessing) {
           Processando...
           } @else {
-          Confirmar Rejeição
+          Confirmar Reprovação
           }
         </button>
       </div>

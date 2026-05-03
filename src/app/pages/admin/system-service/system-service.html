@@ -1,0 +1,178 @@
+<!-- src/app/pages/admin/system-service/system-service.component.html -->
+<div class="systems-list-container container-content-dashboard container-admin-painel">
+  <div class="section-header">
+    <div class="header-text">
+      <h2>Sistemas Cadastrados</h2>
+      <p>Gerencie todos os sistemas do sistema</p>
+    </div>
+    <button class="btn btn-primary btn-new" (click)="openNewSystemModal()">
+      + Novo Sistema
+    </button>
+  </div>
+
+  @if (apiError) {
+  <div class="alert alert-danger api-error">{{ apiError }}</div>
+  }
+
+  <!-- Painel de Filtros -->
+  <div class="filters-panel">
+    <div class="filters-row">
+      <!-- Busca por Sistema -->
+      <div class="search-field">
+        <label class="field-label"> Sistema
+        </label>
+        <div class="input-wrapper">
+          <input type="text" [(ngModel)]="searchSystem" (ngModelChange)="onSearchChange()"
+            placeholder="Buscar por nome do sistema..." class="filter-input" />
+          @if (searchSystem) {
+          <button class="clear-btn" (click)="searchSystem = ''; onSearchChange()" title="Limpar">×</button>
+          }
+        </div>
+      </div>
+
+      <!-- Busca por Departamento -->
+      <div class="search-field">
+        <label class="field-label"> Departamento
+        </label>
+        <div class="input-wrapper">
+          <input type="text" [(ngModel)]="searchDepartment" (ngModelChange)="onSearchChange()"
+            placeholder="Buscar por departamento..." class="filter-input" />
+          @if (searchDepartment) {
+          <button class="clear-btn" (click)="searchDepartment = ''; onSearchChange()" title="Limpar">×</button>
+          }
+        </div>
+      </div>
+
+      <!-- Filtro de Status com chips -->
+      <div class="status-field">
+        <label class="field-label">
+          Status
+        </label>
+        <div class="status-chips">
+          @for (option of statusOptions; track option.value) {
+          <button class="chip" [class.chip-active]="statusFilter === option.value"
+            [class.chip-ativo]="option.value === 'Ativo' && statusFilter === 'Ativo'"
+            [class.chip-inativo]="option.value === 'Inativo' && statusFilter === 'Inativo'"
+            (click)="setStatusFilter(option.value)">
+            {{ option.label }}
+          </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé dos filtros -->
+    <div class="filters-footer">
+      <div class="results-info">
+        @if (isLoading) {
+        <span class="loading-text">
+          <span class="spinner"></span> Carregando...
+        </span>
+        }
+      </div>
+
+      <div class="filters-actions">
+        @if (hasActiveFilters()) {
+        <span class="active-badge">{{ getActiveFilterCount() }} filtro{{ getActiveFilterCount() !== 1 ? 's' : '' }}
+          ativo{{ getActiveFilterCount() !== 1 ? 's' : '' }}</span>
+        <button class="btn-clear-all" (click)="clearFilters()">✕ Limpar filtros</button>
+        }
+        <button class="btn-refresh" (click)="loadSystems()" [disabled]="isLoading" title="Atualizar">
+          ↻
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-container">
+    <table class="systems-table">
+      <thead>
+        <tr>
+          <th>Sistema</th>
+          <th>Departamento</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (system of systemsPage; track system.systemService) {
+        <tr>
+          <td>
+            <span class="system-name">{{ system.systemService }}</span>
+          </td>
+          <td class="department-cell">{{ system.department }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(system.status)">
+              {{ system.status }}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <button class="btn btn-sm btn-primary" (click)="openEditSystemModal(system)">
+              Editar
+            </button>
+          </td>
+        </tr>
+        } @empty {
+        <tr>
+          <td colspan="4" class="empty-message">
+            <div class="empty-state">
+              @if (isLoading) {
+              <h3>Carregando sistemas...</h3>
+              } @else {
+              <h3>Nenhum sistema encontrado</h3>
+              <p>Tente ajustar os filtros ou limpar a busca</p>
+              }
+            </div>
+          </td>
+        </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <app-pagination [totalItems]="paginationInfo.totalItems" [currentPage]="paginationInfo.currentPage"
+    [pageSize]="paginationInfo.itemsPerPage" [pageSizeOptions]="pageSizeOptions" [isLoading]="isLoading"
+    (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+  </app-pagination>
+
+  <!-- Modal -->
+  <app-modal [visible]="showSystemModal" [title]="modalTitle" [size]="'medium'" [showFooter]="false"
+    (closed)="closeModal()">
+    <div class="system-modal">
+      @if (modalError) {
+      <div class="alert alert-danger">{{ modalError }}</div>
+      }
+      @if (modalSuccess) {
+      <div class="alert alert-success">{{ modalSuccess }}</div>
+      }
+
+      <div class="form-group">
+        <label for="systemName" class="form-label">Nome do Sistema *</label>
+        <input type="text" id="systemName" class="form-control" [(ngModel)]="selectedSystem.systemService"
+          [disabled]="isLoading" placeholder="Ex: SIPAC, SED, e-SAJ">
+      </div>
+
+      <div class="form-group">
+        <label for="department" class="form-label">Departamento *</label>
+        <input type="text" id="department" class="form-control" [(ngModel)]="selectedSystem.department"
+          [disabled]="isLoading" placeholder="Ex: TI, Financeiro, RH">
+      </div>
+
+      <div class="form-group">
+        <label for="status" class="form-label">Status</label>
+        <select id="status" class="form-control" [(ngModel)]="selectedSystem.status" [disabled]="isLoading">
+          <option value="Ativo">Ativo</option>
+          <option value="Inativo">Inativo</option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-secondary" (click)="closeModal()" [disabled]="isLoading">Cancelar</button>
+        <button class="btn btn-primary" (click)="saveSystem()" [disabled]="isLoading">
+          @if (isLoading) { Salvando... } @else { Salvar }
+        </button>
+      </div>
+    </div>
+  </app-modal>
+</div>

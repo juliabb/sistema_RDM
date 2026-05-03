@@ -7,12 +7,14 @@ import { ModalComponent } from '../../../components/modal/modal.component';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { API_PATHS, buildApiUrl } from '../../../config/api.config';
-import { AuthService } from '../../../services/auth-services';
+import { AuthService } from '../../../services/auth-service';
+import { PaginationComponent } from '../../../components/pagination/pagination.component';
 
 // Interfaces
 interface PendingUser {
   name: string;
   email: string;
+  department?: string;
   situation: string;
 }
 
@@ -41,16 +43,23 @@ interface PendingUsersResponse {
 @Component({
   selector: 'app-users-pending',
   standalone: true,
-  imports: [CommonModule, FormsModule, ModalComponent, MatIconModule, MatButtonModule],
+  imports: [CommonModule, FormsModule, ModalComponent, MatIconModule, MatButtonModule, PaginationComponent],
   templateUrl: './users-pending.html',
   styleUrls: ['./users-pending.css'],
 })
 export class PendingUsersComponent implements OnInit {
+  Math = Math;
   pendingUsers: PendingUser[] = [];
   filteredUsers: PendingUser[] = [];
   isLoading = false;
   errorMessage = '';
   searchTerm = '';
+  currentPage = 1;
+  pageSize = 10;
+  totalPages = 1;
+
+  totalItems: number = 0; // Para controle de paginação
+  pageSizeOptions: number[] = [5, 10, 20, 50]; // Opções do select
 
   // Para modal
   showModal = false;
@@ -70,10 +79,13 @@ export class PendingUsersComponent implements OnInit {
   // Opções para select
   modalStatusOptions = [
     { value: 'Aprovado', label: 'Aprovado' },
-    { value: 'Reprovado', label: 'Reprovado' },
+    { value: 'Desativado', label: 'Reprovado' },
   ];
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
     this.loadPendingUsers();
@@ -96,51 +108,64 @@ export class PendingUsersComponent implements OnInit {
       accept: 'text/plain',
     });
 
-    // Usando o endpoint específico para usuários pendentes
     this.loadPendingUsersFromApi(headers);
   }
 
   // Carrega usuários pendentes do endpoint específico
   private loadPendingUsersFromApi(headers: HttpHeaders): void {
-    console.log('Carregando usuários pendentes específicos...');
+    const url = buildApiUrl(API_PATHS.ADMIN_USERS_PENDING);
+    const urlWithParams = `${url}?PageNumber=${this.currentPage}&PageSize=${this.pageSize}`;
 
-    // Usando o endpoint
-    const url = buildApiUrl(API_PATHS.ADMIN_BASE);
-
-    console.log(`Carregando usuários pendentes de: ${url}`);
-
-    this.http.get<PendingUsersResponse>(url, { headers }).subscribe({
+    this.http.get<PendingUser[]>(urlWithParams, { headers, observe: 'response' }).subscribe({
       next: (response) => {
-        console.log('Resposta de usuários pendentes:', response);
-
-        if (response && response.usersPending && Array.isArray(response.usersPending)) {
-          // Processa os usuários pendentes retornados
-          this.processPendingUsers(response.usersPending);
+        if (response.body && Array.isArray(response.body)) {
+          this.processPendingUsers(response.body);
+          const paginationHeader = response.headers.get('pagination');
+          if (paginationHeader) {
+            try {
+              const paginationInfo = JSON.parse(paginationHeader);
+              this.totalPages = paginationInfo.totalPages || 1;
+                this.totalItems = paginationInfo.totalCount ?? (this.totalPages * this.pageSize);
+            } catch (e) {
+              // Se não for JSON, pode ser apenas o total
+              const totalCount = parseInt(paginationHeader, 10);
+              if (!isNaN(totalCount)) {
+                this.totalItems = totalCount;
+                this.totalPages = Math.ceil(totalCount / this.pageSize);
+              }
+            }
+          }
         } else {
-          console.warn('Nenhum usuário pendente encontrado na resposta:', response);
+          console.warn('Resposta não é um array:', response.body);
           this.pendingUsers = [];
           this.filteredUsers = [];
-          this.errorMessage = 'Nenhum usuário pendente encontrado.';
+          this.errorMessage = 'Formato de resposta inválido.';
         }
 
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Erro ao carregar usuários pendentes específicos:', error);
+        console.error('Erro ao carregar usuários pendentes:', error);
         this.handleLoadError(error);
         this.isLoading = false;
       },
     });
   }
 
-  // Processa a lista de usuários pendentes do endpoint
-  private processPendingUsers(pendingUsers: PendingUser[]): void {
-    console.log(`Processando ${pendingUsers.length} usuário(s) pendente(s) do endpoint específico`);
+onPageChange(page: number): void {
+  this.changePage(page);
+}
 
-    // Garante que a situação está formatada corretamente (case-insensitive)
-    this.pendingUsers = pendingUsers.map((user) => ({
+onPageSizeChange(size: number): void {
+  this.changePageSize(size);
+}
+
+  // Processa a lista de usuários pendentes do endpoint
+  private processPendingUsers(users: PendingUser[]): void {
+    this.pendingUsers = users.map((user) => ({
       name: user.name || 'Não informado',
       email: user.email || '',
+      department: user.department || '',
       situation: this.formatSituationForDisplay(user.situation),
     }));
 
@@ -153,6 +178,18 @@ export class PendingUsersComponent implements OnInit {
     }
   }
 
+  changePage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.loadPendingUsers();
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1; // Reset para primeira página
+    this.loadPendingUsers();
+  }
+
   // Formata a situação para exibição
   private formatSituationForDisplay(situation: string): string {
     if (!situation || situation.trim() === '') {
@@ -162,15 +199,11 @@ export class PendingUsersComponent implements OnInit {
     const sit = situation.toLowerCase().trim();
 
     // Verifica em minúsculo para pegar as variações
-    if (
-      sit.includes('aprovado')
-    ) {
+    if (sit.includes('aprovado')) {
       return 'Aprovado';
     }
 
-    if (
-      sit.includes('reprovado')
-    ) {
+    if (sit.includes('reprovado')) {
       return 'Reprovado';
     }
 
@@ -196,9 +229,11 @@ export class PendingUsersComponent implements OnInit {
     } else if (error.status === 403) {
       this.errorMessage = 'Você não tem permissão para acessar esta funcionalidade.';
     } else if (error.status === 404) {
-      this.errorMessage = 'Endpoint não encontrado. Verifique se o endpoint de usuários pendentes está disponível.';
+      this.errorMessage =
+        'Endpoint não encontrado. Verifique se o endpoint de usuários pendentes está disponível.';
     } else if (error.status === 400) {
-      this.errorMessage = 'Requisição inválida: ' + (error.error?.title || 'Verifique os parâmetros.');
+      this.errorMessage =
+        'Requisição inválida: ' + (error.error?.title || 'Verifique os parâmetros.');
     } else if (error.status === 204) {
       this.pendingUsers = [];
       this.filteredUsers = [];
@@ -240,18 +275,12 @@ export class PendingUsersComponent implements OnInit {
 
     const url = buildApiUrl(API_PATHS.ADMIN_GET_USER(email));
 
-    console.log('Carregando detalhes do usuário:', email);
-
     // IMPORTANTE: O endpoint retorna um ARRAY
     this.http.get<UserDetail[]>(url, { headers }).subscribe({
       next: (userDetailsArray) => {
-        console.log('Detalhes do usuário carregados (array):', userDetailsArray);
-
         if (Array.isArray(userDetailsArray) && userDetailsArray.length > 0) {
           // Pega o primeiro elemento do array (que contém os dados do usuário)
           const userDetails = userDetailsArray[0];
-
-          console.log('Dados extraídos do array:', userDetails);
 
           // Converter dados da API para o modal
           this.selectedUser = {
@@ -262,8 +291,6 @@ export class PendingUsersComponent implements OnInit {
             role: userDetails.role || 'user',
             registrationDate: new Date().toLocaleDateString('pt-BR'),
           };
-
-          console.log('Usuário processado para modal:', this.selectedUser);
         } else {
           // Se o array estiver vazio, usa dados básicos
           console.warn('Array de detalhes do usuário está vazio');
@@ -296,15 +323,13 @@ export class PendingUsersComponent implements OnInit {
       registrationDate: new Date().toLocaleDateString('pt-BR'),
     };
 
-    console.log('Usando dados básicos para usuário:', this.selectedUser);
-
     if (error) {
       if (error.status === 404) {
         this.showNotification('Usuário não encontrado na base completa.', 'warning');
       } else {
         this.showNotification(
           'Erro ao carregar detalhes completos. Algumas informações podem estar indisponíveis.',
-          'warning'
+          'warning',
         );
       }
     }
@@ -335,12 +360,8 @@ export class PendingUsersComponent implements OnInit {
 
     const url = buildApiUrl(API_PATHS.ADMIN_APPROVE_USER(this.selectedUser.email));
 
-    console.log('Alterando status do usuário:', this.selectedUser.email);
-
     this.http.put(url, body, { headers, observe: 'response' }).subscribe({
-      next: (response) => {
-        console.log('Status alterado com sucesso:', response);
-
+      next: () => {
         this.isChangingStatus = false;
         this.changeStatusSuccess = true;
 
@@ -349,8 +370,8 @@ export class PendingUsersComponent implements OnInit {
         this.filteredUsers = this.filteredUsers.filter((u) => u.email !== this.selectedUser!.email);
 
         this.showNotification(
-          `✅ Usuário ${this.selectedStatus.toLowerCase()} com sucesso!`,
-          'success'
+          `Usuário ${this.selectedStatus.toLowerCase()} com sucesso!`,
+          'success',
         );
 
         // Fecha após 2 segundos
@@ -442,7 +463,7 @@ export class PendingUsersComponent implements OnInit {
       (user) =>
         (user.name && user.name.toLowerCase().includes(term)) ||
         (user.email && user.email.toLowerCase().includes(term)) ||
-        (user.situation && user.situation.toLowerCase().includes(term))
+        (user.situation && user.situation.toLowerCase().includes(term)),
     );
   }
 

@@ -1,5 +1,6 @@
 // src/app/pages/admin/users-list/users-list.component.ts
-// USUÁRIOS CADASTRADOS (APROVADO, REPROVADO E PENDENTE)
+import { Subject, forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -7,9 +8,10 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { SharedMaterialModule } from '../../../shared/ui';
 import { ModalComponent } from '../../../components/modal/modal.component';
 import { API_PATHS, buildApiUrl } from '../../../config/api.config';
-import { AuthService } from '../../../services/auth-services';
+import { AuthService } from '../../../services/auth-service';
+import { PaginationComponent } from '../../../components/pagination/pagination.component';
 
-// Interfaces principais
+// Interfaces
 interface ApiUser {
   name: string;
   email: string;
@@ -23,7 +25,6 @@ interface RegisteredUser {
   email: string;
   department: string;
   situation: string;
-  originalSituation: string;
   role: string;
   registrationDate?: string;
 }
@@ -31,24 +32,25 @@ interface RegisteredUser {
 @Component({
   selector: 'app-users-list',
   standalone: true,
-  imports: [FormsModule, CommonModule, SharedMaterialModule, ModalComponent],
+  imports: [FormsModule, CommonModule, SharedMaterialModule, ModalComponent, PaginationComponent],
   templateUrl: './users-list.html',
   styleUrls: ['./users-list.css'],
 })
 export class UsersListComponent implements OnInit {
   // Propriedades principais
-  allUsers: RegisteredUser[] = [];
-  displayedUsers: RegisteredUser[] = [];
+  users: RegisteredUser[] = [];
   searchTerm = '';
   statusFilter = 'todos';
   roleFilter = 'todos';
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 10; // Mantido em 10 (valor que a API aceita)
   totalUsers = 0;
   totalPages = 1;
   isLoading = false;
-  isLoadingAll = false;
   apiError = '';
+  allUsers: RegisteredUser[] = []; // armazena todos os usuários carregados
+
+  // Modal
   showUserModal = false;
   selectedUser: RegisteredUser | null = null;
   newPassword = '';
@@ -67,12 +69,18 @@ export class UsersListComponent implements OnInit {
   changeStatusSuccess = false;
   activeTab: 'info' | 'password' | 'role' | 'status' = 'info';
 
+  // Propriedades para edição
+  isEditing = false;
+  editError = '';
+  editSuccess = false;
+  originalUserEmail: string = '';
+
   // Configurações
   statusOptions = [
     { value: 'todos', label: 'Todos os Status' },
     { value: 'Aprovado', label: 'Aprovado' },
+    { value: 'Desativado', label: 'Desativado' },
     { value: 'Pendente', label: 'Pendente' },
-    { value: 'Reprovado', label: 'Reprovado' },
   ];
 
   roleOptions = [
@@ -82,161 +90,39 @@ export class UsersListComponent implements OnInit {
   ];
 
   modalRoleOptions = [
-    { value: 'administrador', label: 'Administrador' },
     { value: 'teamMember', label: 'Padrão' },
+    { value: 'administrador', label: 'Administrador' },
   ];
 
   modalStatusOptions = [
     { value: 'Aprovado', label: 'Aprovado' },
-    { value: 'Reprovado', label: 'Reprovado' },
-    { value: 'Pendente', label: 'Pendente' },
+    { value: 'Desativado', label: 'Desativado' },
   ];
 
-  private situationMapping: { [key: string]: string } = {
-    // Aprovado
-    Aprovado: 'Aprovado',
-    aprovado: 'Aprovado',
+  private searchSubject = new Subject<string>();
 
-    // Pendente
-    Pendente: 'Pendente',
-    pendente: 'Pendente',
+  // Gerencia qual ação está ativa no modal (senha, role, status ou edição)
+  activeAction: 'password' | 'role' | 'status' | 'edit' = 'password';
 
-    // Reprovado
-    Reprovado: 'Reprovado',
-    reprovado: 'Reprovado',
-  };
+  // Define a ação ativa no modal para exibir o conteúdo correspondente
+  setActiveAction(action: 'password' | 'role' | 'status' | 'edit'): void {
+    this.activeAction = action;
+  }
 
-  constructor(private http: HttpClient, private authService: AuthService) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
-    // Primeiro carrega todos os usuários
-    this.loadAllUsersForFiltering();
+    this.loadAllUsers();
+    this.setupSearchDebounce();
   }
 
   // ==================== CARREGAMENTO DE DADOS ====================
 
-  /** Carrega TODOS os usuários para filtragem local */
-  private loadAllUsersForFiltering(): void {
-    this.isLoadingAll = true;
-
-    const token = this.authService.getToken();
-    if (!token) {
-      this.isLoadingAll = false;
-      return;
-    }
-
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`,
-      accept: 'text/plain',
-    });
-
-    // Primeiro carrega a página 1 com tamanho 50 para começar
-    const initialParams = new HttpParams().set('PageNumber', '1').set('PageSize', '50');
-
-    this.http
-      .get<ApiUser[]>(buildApiUrl(API_PATHS.ADMIN_LIST_USERS), {
-        headers,
-        params: initialParams,
-      })
-      .subscribe({
-        next: (response) => {
-          if (Array.isArray(response)) {
-            // Converte para RegisteredUser
-            this.allUsers = response.map((user) => this.formatUserFromApi(user));
-
-            // Se houver mais páginas, carrega o restante
-            // Como não sabemos o total, assumimos que se veio 50, tem mais
-            if (response.length === 50) {
-              this.loadRemainingUsers(token, headers, 2);
-            } else {
-              this.isLoadingAll = false;
-              // Após carregar todos, aplica os filtros e mostra a página 1
-              this.applyFiltersAndLoadPage(1);
-            }
-          } else {
-            console.warn('Resposta não é um array:', response);
-            this.allUsers = [];
-            this.isLoadingAll = false;
-            this.applyFiltersAndLoadPage(1);
-          }
-        },
-        error: (error) => {
-          console.error('Erro ao carregar usuários iniciais:', error);
-
-          // Tenta carregar sem parâmetros de paginação
-          this.tryLoadUsersWithoutPagination(token, headers);
-        },
-      });
-  }
-
-  /** Tenta carregar usuários sem paginação */
-  private tryLoadUsersWithoutPagination(token: string, headers: HttpHeaders): void {
-    this.http
-      .get<ApiUser[]>(buildApiUrl(API_PATHS.ADMIN_LIST_USERS), {
-        headers,
-      })
-      .subscribe({
-        next: (response) => {
-          if (Array.isArray(response)) {
-            this.allUsers = response.map((user) => this.formatUserFromApi(user));
-          } else {
-            this.allUsers = [];
-          }
-
-          this.isLoadingAll = false;
-          this.applyFiltersAndLoadPage(1);
-        },
-        error: (error) => {
-          console.error('Erro ao carregar usuários sem paginação:', error);
-          this.handleApiError(error);
-          this.isLoadingAll = false;
-          // Mesmo com erro, tenta carregar a primeira página normalmente
-          this.loadUsers(1);
-        },
-      });
-  }
-
-  /** Carrega usuários restantes página por página */
-  private loadRemainingUsers(token: string, headers: HttpHeaders, pageNumber: number): void {
-    const params = new HttpParams().set('PageNumber', pageNumber.toString()).set('PageSize', '50');
-
-    this.http
-      .get<ApiUser[]>(buildApiUrl(API_PATHS.ADMIN_LIST_USERS), {
-        headers,
-        params,
-      })
-      .subscribe({
-        next: (response) => {
-          if (Array.isArray(response) && response.length > 0) {
-            // Adiciona os novos usuários
-            const newUsers = response.map((user) => this.formatUserFromApi(user));
-            this.allUsers = [...this.allUsers, ...newUsers];
-
-            // Se ainda houver mais páginas, continua carregando
-            if (response.length === 50) {
-              this.loadRemainingUsers(token, headers, pageNumber + 1);
-            } else {
-              this.isLoadingAll = false;
-              // Após carregar todos, aplica os filtros
-              this.applyFiltersAndLoadPage(1);
-            }
-          } else {
-            // Não há mais usuários
-            this.isLoadingAll = false;
-            this.applyFiltersAndLoadPage(1);
-          }
-        },
-        error: (error) => {
-          console.error(`Erro ao carregar página ${pageNumber}:`, error);
-          this.isLoadingAll = false;
-          // Continua com os usuários já carregados
-          this.applyFiltersAndLoadPage(1);
-        },
-      });
-  }
-
-  /** Carrega uma página específica da API (para exibição inicial) */
-  private loadUsers(pageNumber: number = this.currentPage): void {
+  /** Carrega todas as páginas de usuários da API */
+  loadAllUsers(): void {
     this.isLoading = true;
     this.apiError = '';
 
@@ -252,249 +138,228 @@ export class UsersListComponent implements OnInit {
       accept: 'text/plain',
     });
 
-    const params = new HttpParams()
-      .set('PageNumber', pageNumber.toString())
-      .set('PageSize', this.pageSize.toString());
+    // Primeira chamada para obter totalPages e primeira página
+    let params = new HttpParams().set('PageNumber', '1').set('PageSize', this.pageSize.toString()); // usa 10
 
     this.http
       .get<ApiUser[]>(buildApiUrl(API_PATHS.ADMIN_LIST_USERS), {
         headers,
         params,
+        observe: 'response',
       })
       .subscribe({
-        next: (response) => {
-          if (Array.isArray(response)) {
-            this.displayedUsers = response.map((user) => this.formatUserFromApi(user));
-            // Se ainda não carregou todos os usuários para filtragem, atualiza o cache
-            if (this.allUsers.length === 0) {
-              this.allUsers = [...this.displayedUsers];
+        next: (firstResponse) => {
+          // Extrai totalPages do header
+          const paginationHeader = firstResponse.headers.get('pagination');
+          let totalPages = 1;
+          if (paginationHeader) {
+            try {
+              const paginationInfo = JSON.parse(paginationHeader);
+              totalPages = paginationInfo.totalPages || 1;
+            } catch {
+              // fallback
             }
-            // Para uma estimativa inicial do total
-            if (this.totalUsers === 0) {
-              // Se recebemos menos que o pageSize, esse é o total
-              if (response.length < this.pageSize) {
-                this.totalUsers = response.length;
-              } else {
-                // Se recebemos pageSize, assumimos que tem mais
-                this.totalUsers = response.length * 2;
-              }
-              this.totalPages = Math.ceil(this.totalUsers / this.pageSize);
-            }
-          } else {
-            this.displayedUsers = [];
           }
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('Erro ao carregar página:', error);
 
-          // Tenta carregar sem paginação
-          if (error.status === 400) {
-            this.tryLoadSinglePageWithoutPagination(headers);
-          } else {
-            this.handleApiError(error);
+          const firstPageUsers = firstResponse.body || [];
+          const allApiUsers: ApiUser[] = [...firstPageUsers];
+
+          if (totalPages <= 1) {
+            // Só uma página
+            this.allUsers = allApiUsers.map((u) => this.formatUserFromApi(u));
+            this.applyLocalFilters();
             this.isLoading = false;
+            return;
           }
-        },
-      });
-  }
 
-  /** Tenta carregar uma única página sem paginação */
-  private tryLoadSinglePageWithoutPagination(headers: HttpHeaders): void {
-    this.http
-      .get<ApiUser[]>(buildApiUrl(API_PATHS.ADMIN_LIST_USERS), {
-        headers,
-      })
-      .subscribe({
-        next: (response) => {
-          if (Array.isArray(response)) {
-            this.displayedUsers = response.map((user) => this.formatUserFromApi(user));
-            this.allUsers = [...this.displayedUsers];
-            this.totalUsers = response.length;
-            this.totalPages = 1;
+          // Prepara chamadas para as demais páginas (2 até totalPages)
+          const otherPageCalls = [];
+          for (let page = 2; page <= totalPages; page++) {
+            let pageParams = new HttpParams()
+              .set('PageNumber', page.toString())
+              .set('PageSize', this.pageSize.toString());
+            otherPageCalls.push(
+              this.http.get<ApiUser[]>(buildApiUrl(API_PATHS.ADMIN_LIST_USERS), {
+                headers,
+                params: pageParams,
+              }),
+            );
           }
-          this.isLoading = false;
+
+          // Executa todas em paralelo
+          forkJoin(otherPageCalls).subscribe({
+            next: (responses) => {
+              responses.forEach((res) => {
+                if (res && Array.isArray(res)) {
+                  allApiUsers.push(...res);
+                }
+              });
+              this.allUsers = allApiUsers.map((u) => this.formatUserFromApi(u));
+              this.applyLocalFilters();
+              this.isLoading = false;
+            },
+            error: (err) => {
+              console.error('Erro ao carregar páginas adicionais:', err);
+              // Mesmo com erro, usa o que já temos
+              this.allUsers = allApiUsers.map((u) => this.formatUserFromApi(u));
+              this.applyLocalFilters();
+              this.isLoading = false;
+            },
+          });
         },
         error: (error) => {
+          console.error('Erro ao carregar primeira página:', error);
           this.handleApiError(error);
           this.isLoading = false;
         },
       });
   }
 
-  /** Formata usuário da API para exibição */
-  private formatUserFromApi(apiUser: ApiUser): RegisteredUser {
-    const originalSituation = apiUser.situation;
-    const displaySituation = this.getDisplaySituation(originalSituation);
+  /** Aplica filtros locais (search, status, role) e atualiza a página atual */
+  applyLocalFilters() {
+    let filtered = this.allUsers;
 
-    return {
-      name: apiUser.name || 'Não informado',
-      email: apiUser.email || 'Não informado',
-      department: apiUser.department || 'Não informado',
-      situation: displaySituation,
-      originalSituation: originalSituation,
-      role: apiUser.role || 'user',
-      registrationDate: new Date().toLocaleDateString('pt-BR'),
-    };
-  }
-
-  /** Converte situação da API para formato padronizado */
-  private getDisplaySituation(situation: string): string {
-    if (!situation) return 'Pendente';
-
-    // Primeiro verifica se já está no formato correto
-    if (situation === 'Aprovado' || situation === 'Pendente' || situation === 'Reprovado') {
-      return situation;
-    }
-
-    // Converte para minúsculas para comparação
-    const situationLower = situation.toLowerCase().trim();
-
-    // Verifica todas as variações possíveis
-    if (
-      situationLower.includes('ativo') ||
-      situationLower.includes('active') ||
-      situationLower.includes('aprovado')
-    ) {
-      return 'Aprovado';
-    }
-
-    if (situationLower.includes('pendente') || situationLower.includes('pending')) {
-      return 'Pendente';
-    }
-
-    if (
-      situationLower.includes('inativo') ||
-      situationLower.includes('inactive') ||
-      situationLower.includes('reprovado')
-    ) {
-      return 'Reprovado';
-    }
-
-    // Se não for nenhum dos conhecidos, usa o mapping ou retorna como está
-    if (this.situationMapping[situation]) {
-      return this.situationMapping[situation];
-    }
-
-    return situation;
-  }
-
-  // ==================== FILTROS E BUSCA ====================
-
-  /** Aplica filtros localmente nos usuários carregados */
-  private applyFilters(): RegisteredUser[] {
-    if (this.allUsers.length === 0) {
-      return this.displayedUsers; // Retorna os usuários da página atual se não carregou todos
-    }
-
-    let filtered = [...this.allUsers];
-
-    // Filtro de busca por texto
+    // Filtro por texto (nome, email, departamento)
     if (this.searchTerm.trim()) {
       const term = this.searchTerm.toLowerCase().trim();
       filtered = filtered.filter(
         (user) =>
           user.name.toLowerCase().includes(term) ||
           user.email.toLowerCase().includes(term) ||
-          user.department.toLowerCase().includes(term)
+          user.department.toLowerCase().includes(term),
       );
     }
 
     // Filtro por status
     if (this.statusFilter !== 'todos') {
-      filtered = filtered.filter(
-        (user) => user.situation.toLowerCase() === this.statusFilter.toLowerCase()
-      );
+      filtered = filtered.filter((user) => user.situation === this.statusFilter);
     }
 
-    // Filtro por role (perfil)
+    // Filtro por role
     if (this.roleFilter !== 'todos') {
-      filtered = filtered.filter((user) => {
-        const userRole = user.role.toLowerCase();
-        const filterRole = this.roleFilter.toLowerCase();
-
-        // Mapeamento para comparação flexível
-        if (filterRole === 'administrador') {
-          return userRole === 'administrador' || userRole === 'admin';
-        } else if (filterRole === 'teammember') {
-          return userRole === 'teammember' || userRole.includes('team');
-        } else {
-          return userRole === filterRole;
-        }
-      });
+      const roleMap: Record<string, string> = {
+        administrador: 'Administrador',
+        teamMember: 'Padrão',
+      };
+      const targetRole = roleMap[this.roleFilter];
+      if (targetRole) {
+        filtered = filtered.filter((user) => user.role === targetRole);
+      }
     }
 
-    return filtered;
+    this.totalUsers = filtered.length;
+    this.totalPages = Math.ceil(this.totalUsers / this.pageSize) || 1;
+
+    // Ajusta currentPage se estiver além do limite
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+    if (this.currentPage < 1) this.currentPage = 1;
+
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    this.users = filtered.slice(start, end);
   }
 
-  /** Aplica filtros e carrega a página especificada */
-  private applyFiltersAndLoadPage(pageNumber: number): void {
-    const filteredUsers = this.applyFilters();
-    this.totalUsers = filteredUsers.length;
-    this.totalPages = Math.ceil(this.totalUsers / this.pageSize);
-    this.currentPage = Math.min(pageNumber, this.totalPages || 1);
+  // ==================== FILTROS E BUSCA ====================
 
-    // Calcula os usuários para a página atual
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.displayedUsers = filteredUsers.slice(startIndex, endIndex);
-  }
-
-  /** Busca usuários - aplica filtros localmente */
   searchUsers(): void {
-    this.applyFiltersAndLoadPage(1);
+    this.currentPage = 1;
+    this.applyLocalFilters();
   }
 
-  /** Filtra por status - aplica filtros localmente */
   filterByStatus(): void {
-    this.applyFiltersAndLoadPage(1);
+    this.currentPage = 1;
+    this.applyLocalFilters();
   }
 
-  /** Filtra por perfil - aplica filtros localmente */
   filterByRole(): void {
-    this.applyFiltersAndLoadPage(1);
+    this.currentPage = 1;
+    this.applyLocalFilters();
   }
 
-  /** Atualiza lista completa de usuários */
-  refreshUsers(): void {
-    this.allUsers = []; // Limpa cache
-    this.loadAllUsersForFiltering();
-  }
-
-  /** Limpa todos os filtros aplicados */
   clearFilters(): void {
     this.searchTerm = '';
     this.statusFilter = 'todos';
     this.roleFilter = 'todos';
-    this.applyFiltersAndLoadPage(1);
+    this.currentPage = 1;
+    this.applyLocalFilters();
+  }
+
+  refreshUsers(): void {
+    this.loadAllUsers(); // recarrega tudo da API
+  }
+
+  // ==================== DEBOUNCE PARA BUSCA ====================
+
+  private setupSearchDebounce() {
+    this.searchSubject.pipe(debounceTime(300), distinctUntilChanged()).subscribe((term) => {
+      this.currentPage = 1;
+      this.applyLocalFilters(); // usa os dados já carregados
+    });
+  }
+
+  onSearchChange(term: string) {
+    this.searchSubject.next(term);
+  }
+
+  // ==================== PAGINAÇÃO ====================
+
+  onPageChange(newPage: number): void {
+    if (newPage !== this.currentPage) {
+      this.currentPage = newPage;
+      this.applyLocalFilters();
+    }
+  }
+
+  onPageSizeChange(newSize: number): void {
+    this.pageSize = newSize;
+    this.currentPage = 1;
+    this.applyLocalFilters();
   }
 
   // ==================== FORMATAÇÃO E ESTILIZAÇÃO ====================
 
-  /** Formata o role para exibição amigável */
-  formatRole(role: string): string {
-    if (!role) return 'Usuário';
-    const roles: { [key: string]: string } = {
-      administrador: 'Administrador',
-      admin: 'Administrador',
-      teamMember: 'Padrão',
-      teammember: 'Padrão',
-      user: 'Usuário',
-      member: 'Membro',
+  private formatUserFromApi(apiUser: ApiUser): RegisteredUser {
+    return {
+      name: apiUser.name || 'Não informado',
+      email: apiUser.email || 'Não informado',
+      department: apiUser.department || 'Não informado',
+      situation: this.formatSituation(apiUser.situation),
+      role: this.formatRole(apiUser.role || 'teamMember'),
+      registrationDate: new Date().toLocaleDateString('pt-BR'),
     };
-    return roles[role.toLowerCase()] || role;
   }
 
-  /** Retorna classe CSS para estilização do role */
+  private formatSituation(situation: string): string {
+    if (!situation) return 'Pendente';
+    const sit = situation.toLowerCase().trim();
+    if (sit.includes('aprovado') || sit.includes('active')) return 'Aprovado';
+    if (sit.includes('pendente') || sit.includes('pending')) return 'Pendente';
+    if (sit.includes('reprovado') || sit.includes('inactive')) return 'Reprovado';
+    if (situation === 'Aprovado' || situation === 'Pendente' || situation === 'Reprovado') {
+      return situation;
+    }
+    return situation;
+  }
+
+  formatRole(role: string): string {
+    if (!role) return 'Padrão';
+    const roleLower = role.toLowerCase();
+    if (roleLower === 'administrador' || roleLower === 'admin') return 'Administrador';
+    if (roleLower === 'teammember' || roleLower === 'team') return 'Padrão';
+    return role;
+  }
+
   getRoleClass(role: string): string {
     if (!role) return 'role-default';
     const roleLower = role.toLowerCase();
     if (roleLower === 'administrador' || roleLower === 'admin') return 'role-admin';
-    if (roleLower === 'teammember' || roleLower === 'member') return 'role-member';
+    if (roleLower === 'teammember' || roleLower === 'team' || roleLower === 'padrão')
+      return 'role-member';
     return 'role-default';
   }
 
-  /** Retorna classe CSS para estilização da situação */
   getSituationClass(situation: string): string {
     if (!situation) return 'status-default';
     const situationLower = situation.toLowerCase();
@@ -506,12 +371,13 @@ export class UsersListComponent implements OnInit {
 
   // ==================== GERENCIAMENTO DO MODAL ====================
 
-  /** Abre modal para gerenciar usuário selecionado */
   openUserModal(user: RegisteredUser): void {
-    this.selectedUser = user;
+    // Cria uma cópia para edição
+    this.selectedUser = { ...user };
+    this.originalUserEmail = user.email;
     this.newPassword = this.generateRandomPassword();
     this.manualPassword = '';
-    this.selectedRole = user.role;
+    this.selectedRole = 'teamMember';
     this.selectedStatus = user.situation;
     this.passwordOption = 'auto';
     this.resetModalStates();
@@ -519,20 +385,10 @@ export class UsersListComponent implements OnInit {
     this.showUserModal = true;
   }
 
-  /** Fecha modal e limpa todos os estados */
   closeUserModal(): void {
     this.showUserModal = false;
     this.selectedUser = null;
-    this.newPassword = '';
-    this.manualPassword = '';
-    this.selectedRole = '';
-    this.selectedStatus = '';
-    this.passwordOption = 'auto';
-    this.isResetting = false;
-    this.isChangingRole = false;
-    this.isChangingStatus = false;
     this.resetModalStates();
-    this.activeTab = 'info';
   }
 
   private resetModalStates(): void {
@@ -542,24 +398,36 @@ export class UsersListComponent implements OnInit {
     this.changeRoleSuccess = false;
     this.changeStatusError = '';
     this.changeStatusSuccess = false;
+    this.editError = '';
+    this.editSuccess = false;
+    this.isResetting = false;
+    this.isChangingRole = false;
+    this.isChangingStatus = false;
+    this.isEditing = false;
   }
 
   setActiveTab(tab: 'info' | 'password' | 'role' | 'status'): void {
     this.activeTab = tab;
   }
+
   setPasswordOption(option: 'auto' | 'manual'): void {
     this.passwordOption = option;
-    if (option === 'auto' && !this.newPassword) this.newPassword = this.generateRandomPassword();
-    if (option === 'manual') this.manualPassword = '';
+    if (option === 'auto' && !this.newPassword) {
+      this.newPassword = this.generateRandomPassword();
+    }
+    if (option === 'manual') {
+      this.manualPassword = '';
+    }
   }
 
   // ==================== FUNCIONALIDADES DE SENHA ====================
 
-  /** Gera senha aleatória segura */
   generateRandomPassword(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
     let password = '';
-    for (let i = 0; i < 12; i++) password += chars.charAt(Math.floor(Math.random() * chars.length));
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
     return password;
   }
 
@@ -579,15 +447,19 @@ export class UsersListComponent implements OnInit {
   get hasMinLength(): boolean {
     return this.getCurrentPassword().length >= 8;
   }
+
   get hasUpperCase(): boolean {
     return /[A-Z]/.test(this.getCurrentPassword());
   }
+
   get hasLowerCase(): boolean {
     return /[a-z]/.test(this.getCurrentPassword());
   }
+
   get hasNumber(): boolean {
     return /\d/.test(this.getCurrentPassword());
   }
+
   get hasSpecialChar(): boolean {
     return /[!@#$%^&*]/.test(this.getCurrentPassword());
   }
@@ -596,7 +468,6 @@ export class UsersListComponent implements OnInit {
     return this.passwordOption === 'auto' ? this.newPassword : this.manualPassword;
   }
 
-  /** Calcula força da senha (0-5) */
   getPasswordStrength(): number {
     let strength = 0;
     if (this.hasMinLength) strength++;
@@ -621,7 +492,6 @@ export class UsersListComponent implements OnInit {
     return 'Senha forte';
   }
 
-  /** Valida se senha atende aos requisitos mínimos */
   isPasswordValid(): boolean {
     if (this.passwordOption === 'auto') return this.newPassword.length > 0;
     return (
@@ -633,13 +503,92 @@ export class UsersListComponent implements OnInit {
     );
   }
 
-  // ==================== AÇÕES DO MODAL (API) ====================
+  // ==================== AÇÕES DE EDIÇÃO ====================
 
-  /** Redefine senha do usuário */
+  editUser(): void {
+    if (!this.selectedUser) return;
+
+    const token = this.authService.getToken();
+    if (!token) {
+      this.editError = 'Usuário não autenticado. Faça login novamente.';
+      return;
+    }
+
+    // Validação de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.selectedUser.email)) {
+      this.editError = 'E-mail inválido.';
+      return;
+    }
+
+    this.isEditing = true;
+    this.editError = '';
+    this.editSuccess = false;
+
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    });
+
+    const url = buildApiUrl(API_PATHS.ADMIN_UPDATE_USER(this.originalUserEmail));
+
+    // Extrair primeiro nome e sobrenome
+    const fullName = this.selectedUser.name.trim();
+    const spaceIndex = fullName.indexOf(' ');
+    const firstName = spaceIndex === -1 ? fullName : fullName.substring(0, spaceIndex);
+    const lastName = spaceIndex === -1 ? '' : fullName.substring(spaceIndex + 1).trim();
+
+    const body = {
+      name: firstName,
+      lastName: lastName,
+      email: this.selectedUser.email.trim(),
+      department: this.selectedUser.department.trim(),
+    };
+
+    this.http.put(url, body, { headers, observe: 'response' }).subscribe({
+      next: () => {
+        this.isEditing = false;
+        this.editSuccess = true;
+        setTimeout(() => {
+          this.closeUserModal();
+          this.refreshUsers();
+        }, 1500);
+      },
+      error: (error) => {
+        this.isEditing = false;
+        this.handleEditError(error);
+      },
+    });
+  }
+  private handleEditError(error: any): void {
+    console.error('Erro na edição:', error);
+    if (error.status === 401) {
+      this.editError = 'Sessão expirada. Faça login novamente.';
+      this.authService.logout();
+    } else if (error.status === 403) {
+      this.editError = 'Você não tem permissão para esta ação.';
+    } else if (error.status === 404) {
+      this.editError = 'Usuário não encontrado.';
+    } else if (error.status === 400) {
+      if (error.error?.errors) {
+        const errors = error.error.errors;
+        const firstKey = Object.keys(errors)[0];
+        this.editError = errors[firstKey][0];
+      } else if (error.error?.detail) {
+        this.editError = error.error.detail;
+      } else {
+        this.editError = 'Dados inválidos fornecidos.';
+      }
+    } else {
+      this.editError = error.error?.detail || error.error?.message || 'Erro ao atualizar usuário.';
+    }
+  }
+
+  // ==================== AÇÕES DO MODAL ====================
+
   resetPassword(): void {
     if (!this.selectedUser) return;
     const finalPassword = this.passwordOption === 'auto' ? this.newPassword : this.manualPassword;
-
     if (!finalPassword) {
       this.resetError = 'Por favor, informe uma senha.';
       return;
@@ -648,18 +597,16 @@ export class UsersListComponent implements OnInit {
       this.resetError = 'A senha não atende aos requisitos mínimos de segurança.';
       return;
     }
-
     this.isResetting = true;
     this.resetError = '';
     this.makeApiRequest(
       API_PATHS.ADMIN_RESET_PASSWORD(this.selectedUser.email),
       { newPassword: finalPassword },
       'reset',
-      'Senha redefinida com sucesso'
+      'Senha redefinida com sucesso',
     );
   }
 
-  /** Altera perfil (role) do usuário */
   changeUserRole(): void {
     if (!this.selectedUser || !this.selectedRole) return;
     this.isChangingRole = true;
@@ -668,11 +615,10 @@ export class UsersListComponent implements OnInit {
       API_PATHS.ADMIN_CHANGE_ROLE(this.selectedUser.email),
       { role: this.selectedRole },
       'role',
-      'Perfil alterado com sucesso'
+      'Perfil alterado com sucesso',
     );
   }
 
-  /** Altera status do usuário */
   changeUserStatus(): void {
     if (!this.selectedUser || !this.selectedStatus) return;
     this.isChangingStatus = true;
@@ -681,16 +627,15 @@ export class UsersListComponent implements OnInit {
       API_PATHS.ADMIN_APPROVE_USER(this.selectedUser.email),
       { situation: this.selectedStatus },
       'status',
-      'Status alterado com sucesso'
+      'Status alterado com sucesso',
     );
   }
 
-  /** Método genérico para requisições à API */
   private makeApiRequest(
     endpoint: string,
     body: any,
     action: 'reset' | 'role' | 'status',
-    successMessage: string
+    successMessage: string,
   ): void {
     const token = this.authService.getToken();
     if (!token) {
@@ -698,21 +643,18 @@ export class UsersListComponent implements OnInit {
       this.setActionLoading(action, false);
       return;
     }
-
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     });
-
     this.http.put(buildApiUrl(endpoint), body, { headers, observe: 'response' }).subscribe({
       next: () => {
         this.setActionLoading(action, false);
         this.setActionSuccess(action, true);
-        this.updateLocalUser(action);
         setTimeout(() => {
           this.closeUserModal();
-          this.refreshUsers(); // Recarrega todos os usuários para pegar as mudanças
-        }, 2000);
+          this.refreshUsers(); // Recarrega a lista atual
+        }, 1500);
       },
       error: (error) => {
         this.setActionLoading(action, false);
@@ -739,128 +681,53 @@ export class UsersListComponent implements OnInit {
     if (action === 'status') this.changeStatusSuccess = success;
   }
 
-  private updateLocalUser(action: 'reset' | 'role' | 'status'): void {
-    if (!this.selectedUser) return;
-    const userIndex = this.allUsers.findIndex((u) => u.email === this.selectedUser!.email);
-    if (userIndex !== -1) {
-      if (action === 'role') this.allUsers[userIndex].role = this.selectedRole;
-      if (action === 'status') {
-        this.allUsers[userIndex].situation = this.selectedStatus;
-        this.allUsers[userIndex].originalSituation = this.selectedStatus;
-      }
-    }
-  }
-
-  // ==================== PAGINAÇÃO ====================
-
-  goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
-      this.applyFiltersAndLoadPage(page);
-    }
-  }
-
-  nextPage(): void {
-    if (this.currentPage < this.totalPages) {
-      this.applyFiltersAndLoadPage(this.currentPage + 1);
-    }
-  }
-
-  prevPage(): void {
-    if (this.currentPage > 1) {
-      this.applyFiltersAndLoadPage(this.currentPage - 1);
-    }
-  }
-
-  onPageSizeChange(): void {
-    this.applyFiltersAndLoadPage(1);
-  }
-
-  goToFirstPage(): void {
-    if (this.currentPage !== 1) {
-      this.applyFiltersAndLoadPage(1);
-    }
-  }
-
-  goToLastPage(): void {
-    if (this.currentPage !== this.totalPages) {
-      this.applyFiltersAndLoadPage(this.totalPages);
-    }
-  }
-
-  getStartIndex(): number {
-    const start = (this.currentPage - 1) * this.pageSize + 1;
-    return Math.min(start, this.totalUsers);
-  }
-
-  getEndIndex(): number {
-    const end = this.currentPage * this.pageSize;
-    return Math.min(end, this.totalUsers);
-  }
-
-  hasNextPage(): boolean {
-    return this.currentPage < this.totalPages;
-  }
-
-  hasPrevPage(): boolean {
-    return this.currentPage > 1;
-  }
-
-  /** Retorna array de páginas para exibição na paginação */
-  get pages(): number[] {
-    const pages = [];
-    const maxVisible = 5;
-    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(this.totalPages, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-
-    return pages;
-  }
-
   // ==================== UTILITÁRIOS ====================
 
-  /** Verifica se há filtros ativos */
   hasActiveFilters(): boolean {
     return this.searchTerm !== '' || this.statusFilter !== 'todos' || this.roleFilter !== 'todos';
   }
 
-  /** Retorna texto resumido dos filtros ativos */
   getFilterSummary(): string {
     const filters = [];
     if (this.searchTerm) filters.push(`Busca: "${this.searchTerm}"`);
-    if (this.statusFilter !== 'todos')
-      filters.push(
-        `Status: ${this.statusOptions.find((opt) => opt.value === this.statusFilter)?.label}`
-      );
-    if (this.roleFilter !== 'todos')
-      filters.push(
-        `Perfil: ${this.roleOptions.find((opt) => opt.value === this.roleFilter)?.label}`
-      );
+    if (this.statusFilter !== 'todos') {
+      const label = this.statusOptions.find((opt) => opt.value === this.statusFilter)?.label;
+      if (label) filters.push(`Status: ${label}`);
+    }
+    if (this.roleFilter !== 'todos') {
+      const label = this.roleOptions.find((opt) => opt.value === this.roleFilter)?.label;
+      if (label) filters.push(`Perfil: ${label}`);
+    }
     return filters.join(', ');
   }
 
   // ==================== MANIPULAÇÃO DE ERROS ====================
 
   private handleApiError(error: any): void {
-    console.error('Erro ao carregar usuários:', error);
-
-    if (error.status === 400) {
-      this.apiError = 'Erro nos parâmetros da requisição. Ajustando paginação...';
-    } else if (error.status === 401) {
+    if (error.status === 401) {
       this.apiError = 'Sessão expirada. Faça login novamente.';
+      this.authService.logout();
     } else if (error.status === 403) {
       this.apiError = 'Você não tem permissão para acessar esta funcionalidade.';
     } else if (error.status === 404) {
-      this.apiError = 'Endpoint não encontrado. Verifique a configuração da API.';
+      this.apiError = 'Endpoint não encontrado.';
+    } else if (error.status === 400) {
+      // Tenta extrair mensagem de erro do corpo da resposta
+      if (error.error?.errors) {
+        const errors = error.error.errors;
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey) {
+          this.apiError = errors[firstKey][0];
+        } else {
+          this.apiError = 'Erro nos parâmetros da requisição.';
+        }
+      } else if (error.error?.title) {
+        this.apiError = error.error.title;
+      } else {
+        this.apiError = 'Erro nos parâmetros da requisição.';
+      }
     } else if (error.status === 204) {
-      this.allUsers = [];
-      this.displayedUsers = [];
+      this.users = [];
       this.totalUsers = 0;
       this.totalPages = 1;
       this.apiError = '';
@@ -870,28 +737,26 @@ export class UsersListComponent implements OnInit {
   }
 
   private handleApiActionError(error: any, action: 'reset' | 'role' | 'status'): void {
-    console.error(`Erro na ação ${action}:`, error);
-    let errorMessage = 'Erro ao processar a solicitação. Tente novamente.';
-
-    if (error.status === 401) errorMessage = 'Sessão expirada. Faça login novamente.';
-    else if (error.status === 403) errorMessage = 'Você não tem permissão para esta ação.';
-    else if (error.status === 404) errorMessage = 'Usuário não encontrado.';
-    else if (error.status === 400) {
-      const errorMessages = error.error?.errorMessages || [];
-      if (errorMessages.length > 0) errorMessage = `Erro: ${errorMessages.join(', ')}`;
-      else if (error.error?.errors?.Situation)
-        errorMessage = `Erro: ${error.error.errors.Situation[0]}`;
-      else if (error.error?.detail) errorMessage = error.error.detail;
-      else if (action === 'status')
-        errorMessage = 'Status inválido. Use apenas "Aprovado", "Pendente" ou "Reprovado".';
-      else errorMessage = error.error?.detail || 'Dados inválidos fornecidos.';
+    let errorMessage = 'Erro ao processar a solicitação.';
+    if (error.status === 401) {
+      errorMessage = 'Sessão expirada. Faça login novamente.';
+      this.authService.logout();
+    } else if (error.status === 403) {
+      errorMessage = 'Você não tem permissão para esta ação.';
+    } else if (error.status === 404) {
+      errorMessage = 'Usuário não encontrado.';
+    } else if (error.status === 400) {
+      if (error.error?.errors?.Situation) {
+        errorMessage = error.error.errors.Situation[0];
+      } else if (error.error?.detail) {
+        errorMessage = error.error.detail;
+      } else {
+        errorMessage = 'Dados inválidos fornecidos.';
+      }
     } else {
       errorMessage =
-        error.error?.detail ||
-        error.error?.message ||
-        'Erro ao processar a solicitação. Tente novamente.';
+        error.error?.detail || error.error?.message || 'Erro ao processar a solicitação.';
     }
-
     this.setActionError(action, errorMessage);
   }
 }

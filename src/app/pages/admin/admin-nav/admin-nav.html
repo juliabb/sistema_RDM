@@ -1,35 +1,41 @@
 <!-- src/app/pages/admin/admin-nav/admin-nav.html -->
-<nav class="admin-sidebar" aria-label="Navegação do administrador">
-  <div class="admin-header">
-    <h2>Painel Admin</h2>
-    <div class="admin-role">
-      <mat-icon class="role-icon">admin_panel_settings</mat-icon>
-      Administrador
+<nav class="admin-sidebar sidebar" aria-label="Navegação do administrador">
+  <div class="sidebar-header">
+    <h2 class="sidebar-title">Painel Admin</h2>
+    <div class="admin-badge">
+      <mat-icon class="badge-icon">admin_panel_settings</mat-icon>
+      <span class="badge-text">Administrador</span>
     </div>
   </div>
 
-  <div class="admin-tabs" role="tablist">
+  <ul class="sidebar-nav" role="menubar">
     @for (tab of tabs; track tab.id) {
-      <a [routerLink]="tab.route"
-         class="admin-tab"
-         [class.active]="isActive(tab.route)"
-         [attr.aria-selected]="isActive(tab.route)"
-         role="tab"
-         tabindex="0"
-         (keydown)="onKeyDown($event, tab.route)">
-        <mat-icon class="tab-icon">{{ tab.icon }}</mat-icon>
-        <span class="tab-label">{{ tab.label }}</span>
+    <li role="none">
+      <a [routerLink]="tab.route" class="sidebar-link" [class.active]="isActive(tab.route)" role="menuitem"
+        [attr.aria-label]="tab.label" (click)="onTabClick(tab)" (keydown)="onKeyDown($event, tab.route)" tabindex="0">
+        <span class="link-icon">
+          <mat-icon>{{ tab.icon }}</mat-icon>
+        </span>
+        <span class="link-text">{{ tab.label }}</span>
+        <span class="tooltip">{{ tab.label }}</span>
         @if (isActive(tab.route)) {
-          <div class="active-indicator"></div>
+        <span class="active-indicator"></span>
         }
       </a>
+    </li>
     }
-  </div>
+  </ul>
 
-  <div class="admin-footer">
-    <button class="logout-btn" (click)="navigateToDashboard()" title="Voltar ao dashboard principal">
-      <mat-icon class="menu-icon">space_dashboard</mat-icon>
-      <span class="logout-text">Voltar ao Dashboard</span>
+  <div class="sidebar-footer">
+    <button class="sidebar-link logout-btn" (click)="navigateToDashboard()" title="Solicitar mudança">
+      <span class="link-icon">
+        <mat-icon>space_dashboard</mat-icon>
+      </span>
+      <span class="link-text">Solicitar mudança</span>
+      <span class="tooltip">Solicitar mudança</span>
     </button>
+    <div class="version-info">
+      <small>Versão {{ version }}</small>
+    </div>
   </div>
 </nav>

@@ -1,0 +1,47 @@
+<!-- src/app/components/pagination/pagination.html -->
+@if (totalItems > 0 && !isLoading) {
+<div class="pagination-container">
+  <div class="pagination-info">
+    Mostrando {{ getStartIndex() }} a {{ getEndIndex() }} de {{ totalItems }} itens
+  </div>
+
+  <div class="pagination-controls">
+    <button class="btn btn-sm btn-secondary" (click)="goToFirstPage()" [disabled]="!hasPrevPage() || isLoading"
+      title="Primeira página">
+      &laquo;
+    </button>
+
+    <button class="btn btn-sm btn-secondary" (click)="prevPage()" [disabled]="!hasPrevPage() || isLoading"
+      title="Página anterior">
+      &lsaquo;
+    </button>
+
+    @for (page of pages; track page) {
+    <button class="btn btn-sm pagination-btn" [class.active]="currentPage === page" (click)="goToPage(page)"
+      [disabled]="isLoading" [title]="'Ir para página ' + page">
+      {{ page }}
+    </button>
+    }
+
+    <button class="btn btn-sm btn-secondary" (click)="nextPage()" [disabled]="!hasNextPage() || isLoading"
+      title="Próxima página">
+      &rsaquo;
+    </button>
+
+    <button class="btn btn-sm btn-secondary" (click)="goToLastPage()" [disabled]="!hasNextPage() || isLoading"
+      title="Última página">
+      &raquo;
+    </button>
+  </div>
+
+  <div class="pagination-size">
+    <label for="pageSize">Mostrar:</label>
+    <select id="pageSize" [ngModel]="pageSize" (ngModelChange)="onPageSizeChange($event)" [disabled]="isLoading"
+      class="form-control-sm">
+      @for (opt of pageSizeOptions; track opt) {
+      <option [value]="opt">{{ opt }}</option>
+      }
+    </select>
+  </div>
+</div>
+}

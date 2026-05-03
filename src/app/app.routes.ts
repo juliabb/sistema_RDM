@@ -2,7 +2,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
 import { adminGuard } from './guards/admin-guard';
-import { RedirectGuard } from '../app/guards/redirect-guard';
+import { RedirectGuard } from './guards/redirect-guard';
 
 export const routes: Routes = [
   {
@@ -12,21 +12,36 @@ export const routes: Routes = [
     canActivate: [RedirectGuard],
   },
   {
-    path: 'dashboard',
+    path: 'user',
     loadComponent: () =>
       import('./pages/dashboard/dashboard.component').then((m) => m.DashboardComponent),
     canActivate: [authGuard],
+    children: [
+      { path: '', redirectTo: 'new-request', pathMatch: 'full' },
+      {
+        path: 'new-request',
+        loadComponent: () =>
+          import('./pages/dashboard/rdm-form/rdm-form').then((m) => m.RdmFormComponent),
+      },
+      {
+        path: 'my-requests',
+        loadComponent: () =>
+          import('./pages/dashboard/requests-table/requests-table').then(
+            (m) => m.RequestsTableComponent,
+          ),
+      },
+    ],
   },
   {
     path: 'rdm-details/:id',
     loadComponent: () =>
       import('./pages/admin/rdm-details/rdm-details.component').then((m) => m.RDMDetailsComponent),
-    canActivate: [authGuard], // Apenas autenticado, sem adminGuard
+    canActivate: [authGuard],
   },
   {
     path: 'rdm-edit/:ticket',
     loadComponent: () =>
-      import('./pages/dashboard/rdm-edit/rdm-edit.component').then((m) => m.RdmEditComponent),
+      import('./pages/dashboard/rdm-form/rdm-form').then((m) => m.RdmFormComponent),
     canActivate: [authGuard],
   },
 
@@ -69,10 +84,31 @@ export const routes: Routes = [
           import('./pages/admin/rdm-list/rdm-list.component').then((m) => m.RDMListComponent),
       },
       {
-        path: 'rdm/:id', // Esta é a rota interna do admin
+        path: 'rdm/:id',
         loadComponent: () =>
           import('./pages/admin/rdm-details/rdm-details.component').then(
             (m) => m.RDMDetailsComponent,
+          ),
+      },
+      {
+        path: 'rdm-validation',
+        loadComponent: () =>
+          import('./pages/admin/rdm-validation/rdm-validation').then(
+            (m) => m.RdmValidationComponent,
+          ),
+      },
+      {
+        path: 'reports',
+        loadComponent: () =>
+          import('./pages/admin/rdm-reports/rdm-reports.component').then(
+            (m) => m.RdmReportsComponent,
+          ),
+      },
+      {
+        path: 'system-service',
+        loadComponent: () =>
+          import('./pages/admin/system-service/system-service.component').then(
+            (m) => m.SystemServiceComponent,
           ),
       },
       {

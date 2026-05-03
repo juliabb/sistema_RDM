@@ -109,19 +109,33 @@
     }
   </div>
 
-  <div class="button-group">
-    <button type="submit" class="btn-primary btn-register" [disabled]="isLoading || registerForm.invalid">
-      @if (!isLoading) {
-        Criar conta
-      } @else {
-        <span class="spinner"></span> Carregando...
+<div class="button-group">
+  <button
+    type="submit"
+    class="btn-primary btn-register"
+    [disabled]="isLoading || registerForm.invalid"
+    [class.btn-disabled]="registerForm.invalid && !isLoading">
+    @if (!isLoading) {
+      <span>Criar conta</span>
+      @if (registerForm.invalid) {
+        <small class="btn-hint">(preencha todos os campos corretamente)</small>
       }
-    </button>
+    } @else {
+      <span class="spinner"></span> Cadastrando...
+    }
+  </button>
 
-    <button type="button" class="btn-secondary btn-register" (click)="toggleMode.emit()" [disabled]="isLoading">
-      Voltar para login
-    </button>
+  <button type="button" class="btn-secondary btn-register" (click)="toggleMode.emit()" [disabled]="isLoading">
+    Voltar para login
+  </button>
+</div>
+
+<!-- Adicione um resumo de erros no topo do formulário -->
+@if (registerForm.invalid && (registerForm.touched || registerForm.dirty)) {
+  <div class="form-summary-errors">
+    <span>Por favor, corrija os erros no formulário antes de continuar.</span>
   </div>
+}
 </form>
 
 <!-- MODAL DE SUCESSO -->

@@ -11,7 +11,7 @@
 }
 
 .button-group .btn-secondary {
-  margin-bottom: 0 !important;
+  margin-bottom: 5px !important;
 }
 
 .btn-register {
@@ -109,7 +109,6 @@
 /* Botões */
 .btn-primary {
   width: 100%;
-  padding: var(--spacing-md);
   background: var(--primary-700);
   color: var(--white);
   border: none;
@@ -125,7 +124,6 @@
   width: 100%;
   padding: var(--spacing-md);
   background: var(--white);
-  color: var(--primary-700);
   border: 2px solid var(--primary-700);
   border-radius: var(--border-radius);
   font-size: 16px;
@@ -141,8 +139,8 @@
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--primary-100);
-  color: var(--secondary-dark);
+  background: var(--btn-hover-secondary);
+  color: var(--btn-secundary-hover-text);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
@@ -154,3 +152,41 @@ button:disabled {
   box-shadow: none !important;
 }
 
+.btn-hint {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+  margin-top: 2px;
+  font-weight: normal;
+}
+
+.btn-disabled {
+  background: var(--gray-400) !important;
+  cursor: not-allowed !important;
+}
+
+.form-summary-errors {
+  background-color: #fee;
+  border: 1px solid #f99;
+  border-radius: var(--border-radius);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  color: #c00;
+  font-size: 14px;
+}
+
+/* Indicador visual de campo válido (opcional) */
+.input-group.valid input {
+  border-color: var(--success-color);
+  background-color: #f0fff0;
+}
+
+/* Melhorias nos erros */
+.field-error {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}

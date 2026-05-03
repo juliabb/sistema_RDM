@@ -1,21 +1,16 @@
-<!-- src\app\pages\dashboard\dashboard.component.html -->
-<div class="app-container">
-  <div class="main-content">
-    <app-header></app-header>
+<div class="dashboard-container">
+  <app-header></app-header>
 
-    <div class="content-area">
-      <app-tabs (tabSelected)="onTabSelect($event)"></app-tabs>
+  <div class="dashboard-wrapper">
+    <!-- Menu lateral -->
+    <app-dashboard-nav (tabSelected)="onTabSelect($event)" (openSearch)="onOpenSearch()">
+    </app-dashboard-nav>
 
-      <div class="tabs-container">
-        <div class="tab-panel" [class.tab-active]="activeTab === 'new-request'">
-          <app-rdm-form></app-rdm-form>
-        </div>
-
-        <div class="tab-panel tab-panel-centered" [class.tab-active]="activeTab === 'my-requests'">
-          <app-requests-table></app-requests-table>
-        </div>
-
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+      <div class="content-area">
+        <router-outlet></router-outlet>
       </div>
-    </div>
+    </main>
   </div>
 </div>

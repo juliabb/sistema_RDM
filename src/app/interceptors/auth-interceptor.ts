@@ -10,7 +10,7 @@ import {
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
-import { AuthService } from '../services/auth-services';
+import { AuthService } from '../services/auth-service';
 import { isPublicEndpoint } from '../config/api.config';
 
 @Injectable()

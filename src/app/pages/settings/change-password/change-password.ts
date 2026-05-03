@@ -1,11 +1,17 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, AbstractControl, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  AbstractControl,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { UserService, ChangePasswordRequest } from '../../../services/user-services';
-import { AuthService, UserProfile } from '../../../services/auth-services';
+import { UserService, ChangePasswordRequest } from '../../../services/user-service';
+import { AuthService, UserProfile } from '../../../services/auth-service';
 import { Subject, takeUntil, map, Observable } from 'rxjs';
-import { SharedMaterialModule  } from '../../../shared/ui/index';
+import { SharedMaterialModule } from '../../../shared/ui/index';
 
 interface PasswordValidations {
   hasUpperCase: boolean;
@@ -23,8 +29,8 @@ interface PasswordValidations {
     CommonModule,
     ReactiveFormsModule,
     RouterModule,
-    SharedMaterialModule  // Usar o módulo compartilhado
-  ]
+    SharedMaterialModule, // Usar o módulo compartilhado
+  ],
 })
 export class ChangePasswordComponent implements OnInit, OnDestroy {
   changePasswordForm: FormGroup;
@@ -39,33 +45,37 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
     hasLowerCase: false,
     hasNumbers: false,
     hasSpecialChar: false,
-    isValidLength: false
+    isValidLength: false,
   };
 
   passwordStrength = 0;
 
+  showCurrentPassword = false;
+  showNewPassword = false;
+  showConfirmPassword = false;
+
   // Perfil do usuário
-  userProfile$ = this.authService.currentUser$;
+  userProfile$ = this.AuthService.currentUser$;
 
   // Iniciais do usuário como Observable
   userInitials$: Observable<string> = this.userProfile$.pipe(
-    map(user => {
+    map((user) => {
       if (!user?.name) return 'U';
 
       const names = user.name.split(' ');
       if (names.length === 1) return names[0].charAt(0).toUpperCase();
 
       return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
-    })
+    }),
   );
 
   private destroy$ = new Subject<void>();
 
   constructor(
     private fb: FormBuilder,
-    private userService: UserService,
-    private authService: AuthService,
-    private router: Router
+    private UserService: UserService,
+    private AuthService: AuthService,
+    private router: Router,
   ) {
     this.changePasswordForm = this.createForm();
   }
@@ -80,16 +90,41 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
   }
 
   private createForm(): FormGroup {
-    return this.fb.group({
-      currentPassword: ['', [Validators.required]],
-      newPassword: ['', [
-        Validators.required,
-        Validators.minLength(8)
-      ]],
-      confirmPassword: ['', [Validators.required]]
-    }, {
-      validators: this.passwordMatchValidator
-    });
+    return this.fb.group(
+      {
+        currentPassword: ['', [Validators.required]],
+        newPassword: ['', [Validators.required, Validators.minLength(8)]],
+        confirmPassword: ['', [Validators.required]],
+      },
+      {
+        validators: this.passwordMatchValidator,
+      },
+    );
+  }
+
+  formattedUserName$ = this.userProfile$.pipe(
+    map((user) => {
+      if (!user?.name) return 'Usuário';
+
+      return user.name
+        .toLowerCase()
+        .split(' ')
+        .filter((word) => word)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }),
+  );
+
+  toggleCurrentPassword(): void {
+    this.showCurrentPassword = !this.showCurrentPassword;
+  }
+
+  toggleNewPassword(): void {
+    this.showNewPassword = !this.showNewPassword;
+  }
+
+  toggleConfirmPassword(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
   private setupFormListeners(): void {
@@ -99,11 +134,9 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       .subscribe(() => this.onPasswordChange());
 
     // Monitora mudanças na confirmação de senha
-    this.confirmPasswordControl?.valueChanges
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.validatePasswordMatch();
-      });
+    this.confirmPasswordControl?.valueChanges.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.validatePasswordMatch();
+    });
   }
 
   private passwordMatchValidator(group: AbstractControl): { [key: string]: boolean } | null {
@@ -130,7 +163,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       hasLowerCase: /[a-z]/.test(password),
       hasNumbers: /\d/.test(password),
       hasSpecialChar: /[@$!%*?&]/.test(password),
-      isValidLength: password.length >= 8
+      isValidLength: password.length >= 8,
     };
 
     // Calcula força da senha (0-100)
@@ -142,7 +175,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
   private calculatePasswordStrength(): void {
     const validations = Object.values(this.passwordValidations);
-    const validCount = validations.filter(v => v).length;
+    const validCount = validations.filter((v) => v).length;
     this.passwordStrength = Math.round((validCount / validations.length) * 100);
   }
 
@@ -152,7 +185,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
       hasLowerCase: false,
       hasNumbers: false,
       hasSpecialChar: false,
-      isValidLength: false
+      isValidLength: false,
     };
     this.passwordStrength = 0;
   }
@@ -184,6 +217,12 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
     if (this.changePasswordForm.invalid || this.passwordsMismatch) {
       this.markAllAsTouched();
+
+      const firstInvalid = document.querySelector('.password-form input.ng-invalid');
+      if (firstInvalid) {
+        (firstInvalid as HTMLElement).focus();
+      }
+
       return;
     }
 
@@ -195,10 +234,10 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
     const formData: ChangePasswordRequest = {
       password: currentPassword,
-      newPassword: newPassword
+      newPassword: newPassword,
     };
 
-    this.userService.changePassword(formData)
+    this.UserService.changePassword(formData)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: () => {
@@ -209,7 +248,7 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
 
           // Redireciona após 2 segundos
           setTimeout(() => {
-            this.router.navigate(['/dashboard']);
+            this.router.navigate(['/user']);
           }, 2000);
         },
         error: (error: Error) => {
@@ -218,19 +257,19 @@ export class ChangePasswordComponent implements OnInit, OnDestroy {
         },
         complete: () => {
           this.isLoading = false;
-        }
+        },
       });
   }
 
   private markAllAsTouched(): void {
-    Object.keys(this.changePasswordForm.controls).forEach(key => {
+    Object.keys(this.changePasswordForm.controls).forEach((key) => {
       const control = this.changePasswordForm.get(key);
       control?.markAsTouched();
     });
   }
 
   goBack(): void {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/user']);
   }
 
   get currentPasswordControl(): AbstractControl | null {

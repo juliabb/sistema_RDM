@@ -1,17 +1,47 @@
-<div class="tabs" role="tablist" aria-label="Navegação entre seções">
-  @for (tab of tabs; track tab.id) {
-    <button
-      type="button"
-      class="tab"
-      [class.active]="activeTab === tab.id"
-      (click)="selectTab(tab.id)"
-      [attr.aria-selected]="activeTab === tab.id"
-      [attr.aria-controls]="tab.id + '-panel'"
-      [id]="tab.id + '-tab'"
-      role="tab"
-      tabindex="0"
-      title="{{ tab.label }}">
-      {{ tab.label }}
-    </button>
-  }
-</div>
+<nav class="sidebar" [class.mobile-open]="mobileMenuOpen" aria-label="Navegação principal do sistema">
+  <div class="sidebar-header">
+    <h2 class="sidebar-title">Menu</h2>
+  </div>
+
+  <ul class="sidebar-nav" role="menubar">
+    @for (tab of tabs; track tab.id) {
+    <li role="none" [class.help-item]="tab.id === 'help'">
+      @if (tab.isExternal) {
+      <a [href]="tab.id === 'help' ? teamsHelpUrl : '#'" target="_blank" rel="noopener noreferrer" class="sidebar-link"
+        role="menuitem" [attr.aria-label]="tab.label" (click)="selectTab(tab.id)">
+        <span class="link-icon">
+          <mat-icon>{{tab.icon || 'link'}}</mat-icon>
+        </span>
+        <span class="link-text">{{ tab.label }}</span>
+        <span class="tooltip">{{ tab.label }} (Abre em nova janela)</span>
+      </a>
+      } @else {
+      <button type="button" class="sidebar-link" [class.active]="activeTab === tab.id" (click)="selectTab(tab.id)"
+        [attr.aria-selected]="activeTab === tab.id" role="menuitem" [attr.aria-label]="tab.label">
+        <span class="link-icon">
+          @if (tab.id === 'new-request') {
+          <mat-icon>add_circle</mat-icon>
+          } @else if (tab.id === 'my-requests') {
+          <mat-icon>list_alt</mat-icon>
+          } @else {
+          <mat-icon>{{tab.icon}}</mat-icon>
+          }
+        </span>
+        <span class="link-text">{{ tab.label }}</span>
+        <span class="tooltip">{{ tab.label }}</span>
+        @if (activeTab === tab.id && !tab.isExternal) {
+        <span class="active-indicator"></span>
+        }
+      </button>
+      }
+    </li>
+    }
+  </ul>
+
+  <div class="sidebar-footer">
+    <div class="version-info">
+      <small>Versão {{ appVersion }}</small>
+    </div>
+  </div>
+</nav>
+

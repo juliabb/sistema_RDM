@@ -3,7 +3,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
     "outDir": "./out-tsc/app",
+    "rootDir": "./src",
     "types": [
       "node"
     ]

@@ -1,0 +1,40 @@
+<div class="notification-popup" (click)="$event.stopPropagation()">
+  <div class="popup-header">
+    <h3>Notificações</h3>
+    <!-- Botão "Ler todas" removido -->
+  </div>
+
+  <div class="popup-content">
+    @if (loading) {
+    <div class="loading-state">
+      <mat-icon class="spinner">sync</mat-icon>
+      <span>Carregando...</span>
+    </div>
+    } @else if (notifications.length === 0) {
+    <div class="empty-state">
+      <mat-icon>notifications_off</mat-icon>
+      <p>Nenhuma notificação nova</p>
+    </div>
+    } @else {
+    <div class="notification-list">
+      @for (notification of notifications; track notification.id) {
+      <div class="notification-item">
+        <div class="notification-icon">
+          <mat-icon>notifications_active</mat-icon>
+        </div>
+        <!-- Área clicável para navegar ao dashboard -->
+        <div class="notification-content" (click)="onNotificationClick(notification)">
+          <div class="notification-title">{{ notification.title }}</div>
+          <div class="notification-message">{{ notification.message }}</div>
+        </div>
+        <!-- Botão X para dispensar a notificação -->
+        <button class="dismiss-btn" (click)="dismissNotification(notification, $event)"
+          aria-label="Dispensar notificação">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      }
+    </div>
+    }
+  </div>
+</div>

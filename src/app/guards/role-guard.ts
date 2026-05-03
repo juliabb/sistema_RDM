@@ -1,7 +1,7 @@
 // src/app/guards/role-guard.ts
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
-import { AuthService } from '../services/auth-services';
+import { AuthService } from '../services/auth-service';
 
 export const createRoleGuard = (allowedRoles: string[]): CanActivateFn => {
   return () => {
@@ -15,16 +15,16 @@ export const createRoleGuard = (allowedRoles: string[]): CanActivateFn => {
 
     const userRole = authService.getRole();
     if (!userRole) {
-      router.navigate(['/dashboard']);
+      router.navigate(['/user']);
       return false;
     }
 
     const hasAccess = allowedRoles.some((role) =>
-      userRole.toLowerCase().includes(role.toLowerCase())
+      userRole.toLowerCase().includes(role.toLowerCase()),
     );
 
     if (!hasAccess) {
-      router.navigate(['/dashboard'], {
+      router.navigate(['/user'], {
         queryParams: {
           error: 'insufficient_permissions',
           requiredRoles: allowedRoles.join(', '),

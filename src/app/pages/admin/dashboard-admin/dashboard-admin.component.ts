@@ -2,7 +2,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../../../services/auth-services';
+import { AuthService } from '../../../services/auth-service';
 import { HeaderComponent } from '../../../components/header/header.component';
 import { AdminNavComponent } from '../admin-nav/admin-nav.component';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,21 +10,14 @@ import { MatIconModule } from '@angular/material/icon';
 @Component({
   selector: 'app-dashboard-admin',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatIconModule,
-    HeaderComponent,
-    AdminNavComponent,
-
-  ],
+  imports: [CommonModule, RouterModule, MatIconModule, HeaderComponent, AdminNavComponent],
   templateUrl: './dashboard-admin.html',
   styleUrls: ['./dashboard-admin.css'],
 })
 export class DashboardAdminComponent {
   constructor(
     public authService: AuthService,
-    public router: Router // Tornar público para template
+    public router: Router, // Tornar público para template
   ) {}
 
   // Verifica se está em uma rota de detalhes (que não mostra tabs)
@@ -34,14 +27,18 @@ export class DashboardAdminComponent {
 
   // Verifica se está em uma das rotas principais
   isMainRoute(): boolean {
-    const mainRoutes = ['/admin/dashboard', '/admin/users-list',
-                       '/admin/pending-users', '/admin/pending-rdm',
-                       '/admin/rdm-list'];
-    return mainRoutes.some(route => this.router.url === route);
+    const mainRoutes = [
+      '/admin/dashboard',
+      '/admin/users-list',
+      '/admin/pending-users',
+      '/admin/pending-rdm',
+      '/admin/rdm-list',
+    ];
+    return mainRoutes.some((route) => this.router.url === route);
   }
 
   navigateToDashboard(): void {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/user']);
   }
 
   get currentUserRole(): string {

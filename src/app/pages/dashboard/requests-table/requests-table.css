@@ -5,8 +5,13 @@
 .requests-container {
   font-family: var(--font-family-base);
   color: var(--gray-800);
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 100%; /* era 1200px — agora estica */
+  margin: 0;
+  padding: var(--spacing-lg);
+}
+
+.content-area {
+  max-width: 100%; /* sobrescreve o 1200px do dashboard */
   padding: var(--spacing-lg);
 }
 
@@ -25,38 +30,10 @@
 }
 
 .requests-header h2 {
-  color: var(--primary-800);
+  color: var(--title-dark);
   margin: 0;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
-}
-
-/* Botão de atualizar */
-.btn-refresh {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  background: var(--primary-700);
-  color: var(--white);
-  border: none;
-  border-radius: var(--border-radius);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.btn-refresh:hover:not(:disabled) {
-  background: var(--primary-800);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-refresh:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
 }
 
 /* Notificações */
@@ -188,14 +165,30 @@
   width: 100%;
   min-width: 800px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 /* Larguras das colunas */
-.col-ticket { width: 15%; min-width: 120px; }
-.col-title { width: 45%; min-width: 250px; }
-.col-date { width: 20%; min-width: 120px; }
-.col-status { width: 15%; min-width: 100px; }
-.col-actions { width: 15%; min-width: 130px; }
+.col-ticket {
+  width: 15%;
+  min-width: 120px;
+}
+.col-title {
+  width: 45%;
+  min-width: 250px;
+}
+.col-date {
+  width: 20%;
+  min-width: 120px;
+}
+.col-status {
+  width: 15%;
+  min-width: 100px;
+}
+.col-actions {
+  width: 15%;
+  min-width: 130px;
+}
 
 th {
   padding: var(--spacing-md) var(--spacing-lg);
@@ -246,82 +239,10 @@ tbody tr:hover {
 
 .title-cell .title-text {
   display: block;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* ==================== BADGES DE STATUS ==================== */
-.status-badge {
-  display: inline-block;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--border-radius-pill);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: 1px solid transparent;
-  background-color: var(--status-rejected-bg);
-  color: var(--status-rejected-text);
-  border-color: var(--error-color);
-}
-
-/* Se getStatusClass() retorna classes específicas */
-.status-badge.status-pendente {
-  background-color: var(--status-pending-bg);
-  color: var(--status-pending-text);
-  border-color: var(--warning-color);
-}
-
-.status-badge.status-aprovado {
-  background-color: var(--status-approved-bg);
-  color: var(--status-approved-text);
-  border-color: var(--success-color);
-}
-
-.status-badge.status-rejeitado,
-.status-badge.status-reprovado {
-  background-color: var(--status-rejected-bg);
-  color: var(--status-rejected-text);
-  border-color: var(--error-color);
-}
-
-.status-badge.status-andamento,
-.status-badge.status-analise {
-  background-color: var(--status-analysis-bg);
-  color: var(--status-analysis-text);
-  border-color: var(--info-color);
-}
-
-.status-badge.status-concluido {
-  background-color: var(--status-approved-bg);
-  color: var(--status-approved-text);
-  border-color: var(--success-color);
-}
-
-.status-badge.status-cancelado {
-  background-color: var(--status-rejected-bg);
-  color: var(--status-rejected-text);
-  border-color: var(--error-color);
-}
-
-.status-badge.status-aguardando {
-  background-color: var(--status-waiting-bg);
-  color: var(--status-waiting-text);
-  border-color: var(--gray-400);
-}
-
-/* Estilos por atributo data-status se estiver usando */
-.status-badge[data-status="pendente"] {
-  background-color: var(--status-pending-bg);
-  color: var(--status-pending-text);
-  border-color: var(--warning-color);
-}
-
-.status-badge[data-status="rejeitado"] {
-  background-color: var(--status-rejected-bg);
-  color: var(--status-rejected-text);
-  border-color: var(--error-color);
 }
 
 /* Botões de ação na tabela */
@@ -341,14 +262,14 @@ tbody tr:hover {
   justify-content: center;
   gap: var(--spacing-xs);
   padding: var(--spacing-xs) var(--spacing-sm);
-  min-width: 70px;
+  min-width: 72px;
   height: 32px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  border-radius: var(--border-radius);
-  border: 2px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .btn-action:hover:not(:disabled) {
@@ -363,12 +284,41 @@ tbody tr:hover {
   box-shadow: none;
 }
 
-.btn-action .btn-text {
-  display: inline;
-}
-
 .btn-action i {
   font-size: var(--icon-size-xs);
+}
+
+.btn-action:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* PDF como "download" usando cor auxiliar institucional */
+.btn-pdf.btn-info {
+  background: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--white);
+}
+
+.btn-pdf.btn-info:hover:not(:disabled) {
+  background: var(--primary-700);
+  border-color: var(--primary-700);
+}
+
+/* ==========================
+   BOTÃO NEUTRO (somente tabela)
+   ========================== */
+.requests-container .btn-neutral {
+  background: var(--white);
+  color: var(--gray-700);
+  border: 2px solid var(--gray-300);
+  box-shadow: var(--shadow-sm);
+}
+
+.requests-container .btn-neutral:hover:not(:disabled) {
+  background: var(--gray-100);
+  border-color: var(--gray-400);
+  color: var(--gray-800);
 }
 
 /* Paginação */
@@ -443,7 +393,7 @@ tbody tr:hover {
 
 .pagination-number.active {
   background: var(--primary-700);
-  color: var(--white);
+  color: var(--white-page);
   border-color: var(--primary-700);
   font-weight: var(--font-weight-semibold);
 }
@@ -465,17 +415,24 @@ tbody tr:hover {
     text-align: center;
   }
 
-  .btn-refresh {
-    align-self: center;
+  .col-ticket {
+    width: 20%;
+  }
+  .col-title {
+    width: 30%;
+  }
+  .col-date {
+    width: 20%;
+  }
+  .col-status {
+    width: 15%;
+  }
+  .col-actions {
+    width: 15%;
   }
 
-  .col-ticket { width: 20%; }
-  .col-title { width: 30%; }
-  .col-date { width: 20%; }
-  .col-status { width: 15%; }
-  .col-actions { width: 15%; }
-
-  th, td {
+  th,
+  td {
     padding: var(--spacing-sm) var(--spacing-md);
   }
 
@@ -499,9 +456,15 @@ tbody tr:hover {
     padding: var(--spacing-sm);
   }
 
-  .col-ticket { width: 25%; }
-  .col-title { width: 75%; }
-  .col-date, .col-status, .col-actions {
+  .col-ticket {
+    width: 25%;
+  }
+  .col-title {
+    width: 75%;
+  }
+  .col-date,
+  .col-status,
+  .col-actions {
     display: none;
   }
 
@@ -590,10 +553,11 @@ tbody tr:hover {
   color: var(--gray-800);
 }
 
-.filter-input:focus {
+.filter-input:focus,
+.filter-select:focus {
   outline: none;
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .filter-input:disabled {
@@ -653,18 +617,16 @@ tbody tr:hover {
 
 .btn-clear-filters {
   white-space: nowrap;
-  padding: var(--spacing-sm) var(--spacing-md);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  background-color: var(--gray-200);
-  color: var(--gray-700);
-  border: 1px solid var(--gray-300);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--gray-800);
 }
 
-.btn-clear-filters:hover:not(:disabled) {
-  background-color: var(--gray-300);
-  border-color: var(--gray-400);
+.btn-clear-filters:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .btn-clear-filters:disabled {
@@ -683,14 +645,6 @@ tbody tr:hover {
 /* Estados vazios com filtro */
 .empty-container .btn-secondary {
   margin-top: var(--spacing-md);
-  background-color: var(--gray-200);
-  color: var(--gray-700);
-  border: 1px solid var(--gray-300);
-}
-
-.empty-container .btn-secondary:hover {
-  background-color: var(--gray-300);
-  border-color: var(--gray-400);
 }
 
 /* Responsividade para filtros */

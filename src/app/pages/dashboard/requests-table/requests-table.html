@@ -3,7 +3,7 @@
   <div class="requests-header">
     <div class="header-content">
       <h2>Minhas Solicitações RDM</h2>
-      <button type="button" class="btn btn-refresh" (click)="refreshRequests()" [disabled]="isLoading"
+      <button type="button" class="btn btn-primary btn-sm" (click)="refreshRequests()" [disabled]="isLoading"
         title="Atualizar lista de solicitações">
         <i class="fas" [class.fa-sync]="!isLoading" [class.fa-spinner]="isLoading" [class.fa-spin]="isLoading"
           aria-hidden="true"></i>
@@ -44,15 +44,18 @@
           <option value="pendente">Pendente</option>
           <option value="aprovado">Aprovado</option>
           <option value="reprovado">Reprovado</option>
+          <option value="corrigir">Corrigir</option>
         </select>
       </div>
 
       <!-- Botão para limpar todos os filtros -->
+
       <button type="button" class="btn btn-secondary btn-clear-filters" (click)="clearFilters()"
         [disabled]="isLoading || (!searchTerm && !statusFilter)" title="Limpar todos os filtros">
         <i class="fas fa-times-circle" aria-hidden="true"></i>
         <span class="btn-text">Limpar Filtros</span>
       </button>
+
     </div>
   </div>
 
@@ -146,14 +149,15 @@
               {{ formatDate(request.date || request.createdAt) }}
             </td>
             <td class="status-cell">
-              <span class="status-badge {{ getStatusClass(request.status) }}">
+              <span class="status-badge" [ngClass]="getStatusClass(request.status)">
                 {{ getStatusLabel(request.status) }}
               </span>
             </td>
             <td class="actions-cell">
               <div class="actions-buttons">
                 <!-- Botão VER -->
-                <button type="button" class="btn btn-secondary btn-action" (click)="viewRequest(request)"
+
+                <button type="button" class="btn btn-neutral btn-action" (click)="viewRequest(request)"
                   [disabled]="downloadingPDF" [attr.aria-label]="'Ver detalhes da solicitação ' + request.ticket"
                   title="Ver detalhes">
                   <i class="fas fa-eye" aria-hidden="true"></i>
@@ -162,7 +166,8 @@
 
                 <!-- Botão EDITAR (apenas para solicitações pendentes) -->
                 @if (canEditRequest(request)) {
-                <button type="button" class="btn btn-primary btn-action" (click)="editRequest(request)"
+
+                <button type="button" class="btn btn-secondary btn-action" (click)="editRequest(request)"
                   [disabled]="downloadingPDF" [attr.aria-label]="'Editar solicitação ' + request.ticket"
                   title="Editar solicitação">
                   <i class="fas fa-edit" aria-hidden="true"></i>
@@ -171,13 +176,15 @@
                 }
 
                 <!-- Botão PDF -->
-                <button type="button" class="btn btn-danger btn-action" (click)="downloadPDF(request)"
+                <button type="button" class="btn btn-primary btn-action btn-pdf" (click)="downloadPDF(request)"
                   [disabled]="downloadingPDF" [attr.aria-label]="'Baixar PDF da solicitação ' + request.ticket"
                   title="Baixar PDF">
                   <i class="fas" [class.fa-file-pdf]="!downloadingPDF" [class.fa-spinner]="downloadingPDF"
                     [class.fa-spin]="downloadingPDF" aria-hidden="true"></i>
                   <span class="btn-text">{{ downloadingPDF ? '...' : 'PDF' }}</span>
                 </button>
+
+
               </div>
             </td>
           </tr>
@@ -185,6 +192,13 @@
         </tbody>
       </table>
     </div>
+
+    @if (showRefreshNotification) {
+    <div class="notification notification-success" role="status">
+      <i class="fas fa-check-circle" aria-hidden="true"></i>
+      <span>Lista atualizada com sucesso!</span>
+    </div>
+    }
 
     <!-- Paginação -->
     @if (showPagination) {

@@ -1,12 +1,15 @@
 // src/app/pages/dashboard/requests-table/requests-table.ts
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { AuthService } from '../../../services/auth-services';
+import { AuthService } from '../../../services/auth-service';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { RDMList } from '../../../models/rdm-models';
+import { RefreshService } from '../../../services/refresh.service';
+import { Subscription } from 'rxjs';
 
 // Importar configurações da API
 import { buildApiUrl, API_PATHS } from '../../../config/api.config';
@@ -31,16 +34,18 @@ interface PaginationMetadata {
 @Component({
   selector: 'app-requests-table',
   standalone: true,
-  imports: [FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './requests-table.html',
   styleUrls: ['./requests-table.css']
 })
 export class RequestsTableComponent implements OnInit, OnDestroy {
+   private refreshSubscription: Subscription;
   // Dados e estado
   requests: RequestItem[] = [];
   filteredRequests: RequestItem[] = [];
   isLoading = false;
   errorMessage = '';
+  showRefreshNotification = false;
 
   // Filtros
   searchTerm = '';
@@ -59,19 +64,29 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
   totalPages = 0;
 
   // Cache estático para melhorar performance
-  private static requestsCache = new Map<number, RequestItem[]>();
-  private static paginationCache = new Map<number, PaginationMetadata>();
-  private static lastLoadedPage = 1;
+private static requestsCache = new Map<string, RequestItem[]>();
+private static paginationCache = new Map<string, PaginationMetadata>();
+private static lastLoadedPage = new Map<string, number>();
 
   // Gerenciamento de subscriptions
   private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly authService: AuthService,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly router: Router
+  private currentUserEmail: string = '';
+
+constructor(
+   private readonly http: HttpClient,
+  private readonly authService: AuthService,
+  private readonly cdr: ChangeDetectorRef,
+  private readonly router: Router,
+  private refreshService: RefreshService
   ) {
+    const user = this.authService.getCurrentUser();
+    this.currentUserEmail = user?.email?.toLowerCase() || 'anonymous';
+
+    this.refreshSubscription = this.refreshService.refreshRequests$.subscribe(() => {
+      this.handleRefresh();
+    });
+
     // Configura debounce para busca
     this.searchSubject.pipe(
       takeUntil(this.destroy$),
@@ -81,60 +96,67 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
     });
   }
 
-  ngOnInit(): void {
-    const pageToLoad = RequestsTableComponent.lastLoadedPage || 1;
+private getCacheKey(page: number): string {
+  return `${this.currentUserEmail}:${page}`;
+}
 
-    if (RequestsTableComponent.requestsCache.has(pageToLoad)) {
-      this.loadFromStaticCache(pageToLoad);
-    } else {
-      this.loadRequests(pageToLoad, false);
-    }
-  }
+ngOnInit(): void {
+  // Carrega sempre da API na primeira vez, ignorando cache
+  this.loadRequests(1, true);
+}
+
 
   ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-    this.searchSubject.complete();
+    // ... outros cleanups
+    this.refreshSubscription?.unsubscribe();
   }
 
-  // ==================== NOVOS MÉTODOS PARA EDIÇÃO ====================
+   /**
+   * Manipula o evento de refresh
+   */
+private handleRefresh(): void {
+  this.showRefreshNotification = true;
+
+  const cacheKey = this.getCacheKey(this.currentPage);
+  RequestsTableComponent.requestsCache.delete(cacheKey);
+  RequestsTableComponent.paginationCache.delete(cacheKey);
+  this.loadRequests(this.currentPage, true);
+
+  setTimeout(() => {
+    this.showRefreshNotification = false;
+    this.cdr.detectChanges();
+  }, 2000);
+}
 
   /**
    * Verifica se o usuário pode editar uma solicitação
    * Apenas solicitações pendentes do próprio usuário podem ser editadas
    */
-  canEditRequest(request: RequestItem): boolean {
-    if (!request) return false;
-
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) return false;
-
-    // Verifica se o usuário atual é o solicitante
-    // Compara email do solicitante com email do usuário logado
-    const isRequester = request.requesterEmail?.toLowerCase() === currentUser.email.toLowerCase();
-
-    // Verifica se a solicitação está pendente
-    const isPending = request.status?.toLowerCase() === 'pendente';
-
-    return isRequester && isPending;
-  }
+canEditRequest(request: RequestItem): boolean {
+  if (!request) return false;
+  const currentUser = this.authService.getCurrentUser();
+  if (!currentUser) return false;
+  const isRequester = request.requesterEmail?.toLowerCase() === currentUser.email.toLowerCase();
+  const status = request.status?.toLowerCase();
+  const isEditableStatus =  status === 'corrigir';
+  return isRequester && isEditableStatus;
+}
 
   /**
    * Navega para a página de edição da solicitação
    */
-  editRequest(request: RequestItem): void {
-    if (!this.canEditRequest(request)) {
-      this.errorMessage = 'Você só pode editar suas próprias solicitações pendentes.';
+editRequest(request: RequestItem): void {
+  if (!this.canEditRequest(request)) {
+    this.errorMessage = 'Você só pode editar suas próprias solicitações com status "Corrigir".';
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.errorMessage = '';
       this.cdr.detectChanges();
-      setTimeout(() => {
-        this.errorMessage = '';
-        this.cdr.detectChanges();
-      }, 3000);
-      return;
-    }
-
-    this.router.navigate(['/rdm-edit', request.ticket]);
+    }, 3000);
+    return;
   }
+  this.router.navigate(['/rdm-edit', request.ticket]);
+}
 
   /**
    * Navega para página de detalhes da requisição
@@ -211,26 +233,28 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  private loadFromStaticCache(page: number): void {
-    const cachedRequests = RequestsTableComponent.requestsCache.get(page);
-    const cachedPagination = RequestsTableComponent.paginationCache.get(page);
+private loadFromStaticCache(page: number): void {
+  const cacheKey = this.getCacheKey(page);
+  const cachedRequests = RequestsTableComponent.requestsCache.get(cacheKey);
+  const cachedPagination = RequestsTableComponent.paginationCache.get(cacheKey);
 
-    if (cachedRequests) {
-      this.requests = [...cachedRequests];
-      this.filteredRequests = [...cachedRequests];
-      this.currentPage = page;
-      RequestsTableComponent.lastLoadedPage = page;
+  if (cachedRequests) {
+    this.requests = [...cachedRequests];
+    this.filteredRequests = [...cachedRequests];
+    this.currentPage = page;
+    RequestsTableComponent.lastLoadedPage.set(this.currentUserEmail, page);
 
-      if (cachedPagination) {
-        this.updatePagination(cachedPagination);
-      }
-
-      this.totalItemsOriginal = this.totalItems;
-      this.cdr.detectChanges();
-    } else {
-      this.loadRequests(page, false);
+    if (cachedPagination) {
+      this.updatePagination(cachedPagination);
     }
+
+    this.totalItemsOriginal = this.totalItems;
+    this.cdr.detectChanges();
+  } else {
+    this.loadRequests(page, false);
   }
+}
+
 
   loadRequests(page?: number, forceRefresh = false): void {
     if (page !== undefined && page !== this.currentPage) {
@@ -248,10 +272,11 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!forceRefresh && RequestsTableComponent.requestsCache.has(this.currentPage)) {
-      this.loadFromStaticCache(this.currentPage);
-      return;
-    }
+const cacheKey = this.getCacheKey(this.currentPage);
+if (!forceRefresh && RequestsTableComponent.requestsCache.has(cacheKey)) {
+  this.loadFromStaticCache(this.currentPage);
+  return;
+}
 
     this.isLoading = true;
     this.errorMessage = '';
@@ -284,6 +309,7 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
       'pendente': 'Pendente',
       'aprovado': 'Aprovado',
       'reprovado': 'Reprovado',
+      'corrigir': 'Corrigir',
     };
 
     return statusMap[status.toLowerCase()] || status;
@@ -357,8 +383,9 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
     }));
 
     this.filteredRequests = [...this.requests];
-    RequestsTableComponent.requestsCache.set(this.currentPage, [...this.requests]);
-    RequestsTableComponent.lastLoadedPage = this.currentPage;
+  const cacheKey = this.getCacheKey(this.currentPage);
+RequestsTableComponent.requestsCache.set(cacheKey, [...this.requests]);
+RequestsTableComponent.lastLoadedPage.set(this.currentUserEmail, this.currentPage);
     this.processPagination(response, responseData.length);
     this.totalItemsOriginal = this.totalItems;
     this.cdr.detectChanges();
@@ -371,7 +398,8 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
       try {
         const pagination: PaginationMetadata = JSON.parse(paginationHeader);
         this.updatePagination(pagination);
-        RequestsTableComponent.paginationCache.set(this.currentPage, { ...pagination });
+        const cacheKey = this.getCacheKey(this.currentPage);
+RequestsTableComponent.paginationCache.set(cacheKey, { ...pagination });
         return;
       } catch {
         // Fallback para cálculo manual
@@ -450,7 +478,7 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
         }
 
         const blob = response.body as Blob;
-        let filename = `RDM-${request.ticket}.pdf`;
+        let filename = `SES_CIC_FORM-${request.ticket}-${request.title}.pdf`;
         const contentDisposition = response.headers.get('Content-Disposition');
 
         if (contentDisposition) {
@@ -509,18 +537,17 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  goToPage(page: number): void {
-    if (page < 1 || page > this.totalPages || page === this.currentPage) {
-      return;
-    }
-
-    this.currentPage = page;
-    RequestsTableComponent.lastLoadedPage = page;
-    this.requests = [];
-    this.filteredRequests = [];
-    this.loadRequests(page, false);
-    this.scrollToTop();
+goToPage(page: number): void {
+  if (page < 1 || page > this.totalPages || page === this.currentPage) {
+    return;
   }
+
+  this.currentPage = page;
+  this.requests = [];
+  this.filteredRequests = [];
+  this.loadRequests(page, false);
+  this.scrollToTop();
+}
 
   nextPage(): void {
     if (this.hasNextPage()) {
@@ -560,11 +587,12 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
     return pages;
   }
 
-  refreshRequests(): void {
-    RequestsTableComponent.requestsCache.delete(this.currentPage);
-    RequestsTableComponent.paginationCache.delete(this.currentPage);
-    this.loadRequests(this.currentPage, true);
-  }
+refreshRequests(): void {
+  const cacheKey = this.getCacheKey(this.currentPage);
+  RequestsTableComponent.requestsCache.delete(cacheKey);
+  RequestsTableComponent.paginationCache.delete(cacheKey);
+  this.loadRequests(this.currentPage, true);
+}
 
   private createHeaders(token: string): HttpHeaders {
     return new HttpHeaders({
@@ -578,22 +606,25 @@ export class RequestsTableComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status?: string): string {
-    if (!status) return '';
+    if (!status) return 'pending';
 
-    const statusMap: Record<string, string> = {
-      'pendente': 'status-pendente',
-      'aprovado': 'status-aprovado',
-      'reprovado': 'status-reprovado',
-    };
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('aprovada') || statusLower.includes('aprovado')) return 'approved';
+    if (statusLower.includes('rejeitada') || statusLower.includes('rejeitado')) return 'rejected';
+    if (statusLower.includes('pendente')) return 'pending';
+    if (statusLower.includes('concluída') || statusLower.includes('concluido')) return 'completed';
+    if (statusLower.includes('em análise') || statusLower.includes('analise')) return 'analysis';
+    if (statusLower.includes('cancelada') || statusLower.includes('cancelado')) return 'cancelled';
+    if (statusLower.includes('corrigir')) return 'correction';
 
-    return statusMap[status.toLowerCase()] || '';
+    return 'pending';
   }
 
-  static clearCache(): void {
-    RequestsTableComponent.requestsCache.clear();
-    RequestsTableComponent.paginationCache.clear();
-    RequestsTableComponent.lastLoadedPage = 1;
-  }
+static clearCache(): void {
+  RequestsTableComponent.requestsCache.clear();
+  RequestsTableComponent.paginationCache.clear();
+  RequestsTableComponent.lastLoadedPage.clear();
+}
 
   // Getters para template
   get hasRequests(): boolean {

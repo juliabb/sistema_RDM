@@ -1,0 +1,53 @@
+/* src\app\shared\styles\status-badges.css */
+/* ============================================
+   BADGES DE STATUS
+   ============================================ */
+
+.status-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--border-radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  border: 1px solid transparent;
+}
+
+.status-badge.pending {
+  background: var(--warning-light);
+  color: var(--warning-dark);
+  border-color: var(--warning-color);
+}
+
+.status-badge.approved {
+  background: var(--success-light);
+  color: var(--auxiliaty-text);
+  border-color: var(--success-color);
+}
+
+.status-badge.rejected {
+  background: var(--error-light);
+  color: var(--error-dark);
+}
+
+.status-badge.completed {
+  background: var(--info-light);
+  color: var(--info-dark);
+}
+
+.status-badge.analysis {
+  background: var(--primary-100);
+  color: var(--primary-800);
+}
+
+.status-badge.cancelled {
+  background: var(--gray-200);
+  color: var(--gray-700);
+}
+
+.status-badge.correction {
+  background-color: var(--status-corrigir-bg);
+  color: var(--status-corrigir-text);
+  border-color: var(--status-corrigir-border);
+}

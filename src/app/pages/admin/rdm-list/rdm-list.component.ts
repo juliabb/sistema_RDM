@@ -3,16 +3,18 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
-import { RdmService } from '../../../services/rdm-services';
+import { RdmService } from '../../../services/rdm-service';
 import { RDMList, RDMPagedResult, RDMSearchParams } from '../../../models/rdm-models';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
+import { ModalComponent } from '../../../components/modal/modal.component';
+import { PaginationComponent } from '../../../components/pagination/pagination.component';
 
 @Component({
   selector: 'app-rdm-list',
   standalone: true,
-  imports: [FormsModule, CommonModule, MatIconModule],
+  imports: [FormsModule, CommonModule, MatIconModule, ModalComponent, PaginationComponent],
   templateUrl: './rdm-list.html',
   styleUrls: ['./rdm-list.css'],
 })
@@ -21,10 +23,6 @@ export class RDMListComponent implements OnInit, OnDestroy {
   rdmData: RDMList[] = [];
   filteredRDM: RDMList[] = [];
   isLoading = false;
-
-  // Controle de download de PDF - rastreia qual RDM está sendo baixada
-  downloadingPDF: string | null = null;
-  downloadError = '';
 
   // Filtros de busca - valores dos campos de filtro
   searchTerm = '';
@@ -38,6 +36,7 @@ export class RDMListComponent implements OnInit, OnDestroy {
   pageSize = 10;
   totalItems = 0;
   totalPages = 0;
+  pageSizeOptions: number[] = [5, 10, 20, 50];
 
   // Listas únicas para preenchimento de dropdowns de filtro
   uniqueStatuses: string[] = [];
@@ -47,6 +46,10 @@ export class RDMListComponent implements OnInit, OnDestroy {
   // Configuração de ordenação - campo atual e direção
   sortBy = 'date';
   sortOrder: 'asc' | 'desc' = 'desc';
+
+  // Controle do modal de resumo
+  showSummaryModal = false;
+  selectedRDMForSummary: RDMList | null = null;
 
   // Controle de debounce para busca em tempo real
   private searchSubject = new Subject<string>();
@@ -77,6 +80,13 @@ export class RDMListComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Atualiza manualmente a lista de RDMs (botão Atualizar)
+   */
+  refreshData(): void {
+    this.loadRDM();
+  }
+
+  /**
    * Carrega dados de RDM da API aplicando filtros atuais
    * Gerencia estado de loading e tratamento de erros
    */
@@ -100,7 +110,8 @@ export class RDMListComponent implements OnInit, OnDestroy {
         this.rdmData = result.items || [];
         this.filteredRDM = this.rdmData;
         this.totalItems = result.totalCount || 0;
-        this.totalPages = result.totalPages || 0;
+
+        this.totalPages = result.totalPages || Math.ceil(this.totalItems / this.pageSize) || 0;
 
         this.updateUniqueLists();
         this.isLoading = false;
@@ -121,6 +132,81 @@ export class RDMListComponent implements OnInit, OnDestroy {
         });
       },
     });
+  }
+
+  /**
+   * Abre o modal de resumo com as informações de reprovação/correção
+   */
+  openSummaryModal(rdm: RDMList): void {
+    this.selectedRDMForSummary = rdm;
+    this.showSummaryModal = true;
+  }
+
+  /**
+   * Fecha o modal de resumo
+   */
+  closeSummaryModal(): void {
+    this.showSummaryModal = false;
+    this.selectedRDMForSummary = null;
+  }
+
+  /**
+   * Normaliza o status para um valor padrão (aprovado, reprovado, pendente, corrigir, cancelado)
+   */
+
+  getNormalizedStatus(status?: string): string {
+    if (!status) return 'pendente';
+    const s = status.toLowerCase();
+
+    // Radical 'aprovad' pega "aprovado" e "aprovada"
+    if (s.includes('aprovad')) return 'aprovado';
+    // Radical 'reprovad' pega "reprovado", "reprovada", "rejeitado"
+    if (s.includes('reprovad') || s.includes('rejeitad')) return 'reprovado';
+    if (s.includes('corrigir')) return 'corrigir';
+    if (s.includes('cancelad')) return 'cancelado';
+    if (s.includes('pendent')) return 'pendente';
+    return 'pendente';
+  }
+
+  /**
+   * Retorna o label apropriado para o campo de data baseado no status
+   */
+  getStatusBasedLabel(status: string | undefined, field: 'date' | 'responsible'): string {
+    const normalized = this.getNormalizedStatus(status);
+    if (field === 'date') {
+      switch (normalized) {
+        case 'aprovado':
+          return 'Data Aprovação:';
+        case 'reprovado':
+          return 'Data Reprovação:';
+        case 'corrigir':
+          return 'Data Solicitação Correção:';
+        case 'cancelado':
+          return 'Data Cancelamento:';
+        default:
+          return 'Data Atualização:';
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Retorna classe CSS adicional para a mensagem baseada no status
+   */
+  getMessageClass(status?: string): string {
+    const normalized = this.getNormalizedStatus(status);
+    switch (normalized) {
+      case 'aprovado':
+        return 'message-success';
+      case 'reprovado':
+        return 'message-error';
+      case 'corrigir':
+        return 'message-warning';
+      case 'cancelado':
+        return 'message-cancelled';
+      default:
+        return 'message-info';
+    }
   }
 
   /**
@@ -260,20 +346,35 @@ export class RDMListComponent implements OnInit, OnDestroy {
   getStatusClass(status?: string): string {
     if (!status) return 'pending';
 
-    const statusLower = status.toLowerCase();
+    // Limpa espaços e converte para minúsculas
+    const cleanStatus = status.trim().toLowerCase();
+
+    // Verificações explícitas para cada caso
+    if (cleanStatus.includes('aprovado') || cleanStatus.includes('aprovada')) {
+      return 'approved';
+    }
     if (
-      statusLower.includes('rejeitado') ||
-      statusLower.includes('rejeitada') ||
-      statusLower === 'reprovado'
+      cleanStatus.includes('reprovado') ||
+      cleanStatus.includes('rejeitado') ||
+      cleanStatus.includes('reprovada')
     ) {
       return 'rejected';
     }
-
-    if (statusLower.includes('aprovado') || statusLower.includes('aprovada')) return 'approved';
-    if (statusLower.includes('pendente')) return 'pending';
-    if (statusLower.includes('concluído') || statusLower.includes('concluída')) return 'completed';
-    if (statusLower.includes('em análise') || statusLower.includes('analise')) return 'analysis';
-    if (statusLower.includes('cancelado') || statusLower.includes('cancelada')) return 'cancelled';
+    if (cleanStatus.includes('pendente')) {
+      return 'pending';
+    }
+    if (cleanStatus.includes('corrigir')) {
+      return 'corrigir';
+    }
+    if (cleanStatus.includes('cancelado') || cleanStatus.includes('cancelada')) {
+      return 'cancelled';
+    }
+    if (cleanStatus.includes('concluído') || cleanStatus.includes('concluída')) {
+      return 'completed';
+    }
+    if (cleanStatus.includes('análise') || cleanStatus.includes('analise')) {
+      return 'analysis';
+    }
 
     return 'pending';
   }
@@ -291,96 +392,10 @@ export class RDMListComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * Inicia download do relatório PDF de um RDM específico
-   * @param ticketId Identificador do RDM para download
-   */
-  downloadRDM(ticketId: string): void {
-    this.downloadingPDF = ticketId;
-    this.downloadError = '';
-
-    this.rdmService.downloadRDMReport(ticketId).subscribe({
-      next: (blob) => {
-        if (blob.size === 0) {
-          this.downloadError = 'PDF vazio ou não disponível';
-          this.downloadingPDF = null;
-          return;
-        }
-
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const filename = `RDM-${ticketId}-${new Date().toISOString().slice(0, 10)}.pdf`;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-
-        // Limpeza de recursos
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        this.downloadingPDF = null;
-
-        this.snackBar.open(`PDF da RDM ${ticketId} baixado com sucesso!`, 'OK', {
-          duration: 3000,
-          panelClass: ['success-snackbar'],
-        });
-      },
-      error: (error) => {
-        let errorMessage = 'Erro ao baixar PDF';
-
-        // Tratamento específico por código de status
-        if (error.status === 400) {
-          errorMessage = 'Parâmetros inválidos para gerar o PDF';
-        } else if (error.status === 404) {
-          errorMessage = 'RDM não encontrada para gerar PDF';
-        } else if (error.status === 500) {
-          errorMessage = 'Erro interno ao gerar PDF';
-        }
-
-        this.downloadError = errorMessage;
-        this.downloadingPDF = null;
-
-        this.snackBar.open(errorMessage, 'Fechar', {
-          duration: 5000,
-          panelClass: ['error-snackbar'],
-        });
-      },
-    });
-  }
-
-  /**
-   * Calcula intervalo de páginas visíveis na navegação
-   * Mantém foco na página atual com máximo de 5 páginas visíveis
-   * @returns Array de números de páginas a exibir
-   */
-  get pages(): number[] {
-    const pages: number[] = [];
-    const maxVisible = 5;
-    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(this.totalPages, start + maxVisible - 1);
-
-    // Ajusta início se intervalo for menor que máximo
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-    return pages;
-  }
-
-  /**
-   * Indica se há página anterior disponível
-   */
-  get canGoPrevious(): boolean {
-    return this.currentPage > 1;
-  }
-
-  /**
-   * Indica se há próxima página disponível
-   */
-  get canGoNext(): boolean {
-    return this.currentPage < this.totalPages;
+  // Manipuladores de eventos de paginação
+  onPageSizeChange(newSize: number): void {
+    this.pageSize = newSize;
+    this.currentPage = 1; // volta para a primeira página ao mudar o tamanho
+    this.loadRDM();
   }
 }

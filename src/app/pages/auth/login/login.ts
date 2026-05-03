@@ -13,17 +13,21 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { isPlatformBrowser } from '@angular/common';
-import { AuthService} from '../../../services/auth-services';
+import { AuthService } from '../../../services/auth-service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { RedirectService } from '../../../services/redirect-services';
+import { RedirectService } from '../../../services/redirect-service';
+import { MatIconModule } from '@angular/material/icon';
+import { ModalComponent } from '../../../components/modal/modal.component';
 
 // Importar configurações da API
 import { buildApiUrl, API_PATHS } from '../../../config/api.config';
 
+import { APP_CONSTANTS } from '../../../shared/constants/app.constants';
+
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MatIconModule, ModalComponent],
   templateUrl: './login.html',
   styleUrls: ['./login.css'],
 })
@@ -48,15 +52,21 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
   showClearEmailButton = false;
   sessionExpired = false;
 
+  showHelpModal = false;
+
   // Constantes
   private readonly LAST_EMAIL_KEY = 'last_login_email';
   private readonly API_TIMEOUT = 10000;
+  version = APP_CONSTANTS.VERSION;
 
   // Formulário de login
   loginForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
+
+  // URL de ajuda fictícia para portfólio
+  helpUrl = 'mailto:suporte@shiftflow.com.br';
 
   constructor(@Inject(PLATFORM_ID) platformId: any) {
     this.isBrowser = isPlatformBrowser(platformId);
@@ -85,7 +95,7 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
    * Verifica parâmetros da URL (para mensagens de sessão expirada)
    */
   private checkQueryParams() {
-    this.activatedRoute.queryParams.subscribe(params => {
+    this.activatedRoute.queryParams.subscribe((params) => {
       this.sessionExpired = params['sessionExpired'] === 'true';
 
       if (this.sessionExpired) {
@@ -99,13 +109,20 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
    */
   onLoginSubmit() {
     this.clearMessages();
+    this.sessionExpired = false;
+    this.router.navigate([], {
+      queryParams: { sessionExpired: null },
+      replaceUrl: true,
+    });
 
     // Validação do formulário
     if (this.loginForm.invalid) {
       this.markAllFieldsAsTouched();
 
-      if (this.loginForm.get('email')?.hasError('required') ||
-          this.loginForm.get('password')?.hasError('required')) {
+      if (
+        this.loginForm.get('email')?.hasError('required') ||
+        this.loginForm.get('password')?.hasError('required')
+      ) {
         this.errorMessage = 'Preencha todos os campos obrigatórios';
         return;
       }
@@ -117,8 +134,6 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
 
       return;
     }
-
-    this.isLoading = true;
 
     // Dados para enviar à API
     const loginData = {
@@ -159,100 +174,43 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
     });
   }
 
+  // MODAL DE AJUDA
+  openHelpModal(): void {
+    this.showHelpModal = true;
+  }
+
+  closeHelpModal(): void {
+    this.showHelpModal = false;
+  }
+
   /**
    * Processa login bem-sucedido
    * @param response - Resposta da API
    * @param email - Email do usuário
    */
   private handleLoginSuccess(response: any, email: string) {
-    // Salva email no localStorage para autopreenchimento futuro
     if (this.isBrowser && response.email) {
       localStorage.setItem(this.LAST_EMAIL_KEY, response.email);
     }
 
-    // 1. Salva o token JWT (o AuthService já decodifica automaticamente)
+    // Limpa dados antigos antes de salvar o novo token
+    this.authService.clearAuth();
     this.authService.saveToken(response.token);
 
-    // 2. Atualiza estado de loading
-    this.isLoading = true;
-
-    // 3. Redirecionamento com pequeno delay para garantir processamento
+    // Pequeno atraso para garantir que os guards reavaliem
     setTimeout(() => {
-      // Verifica se há uma URL para redirecionar (salva pelo AuthGuard/interceptor)
       const redirectUrl = localStorage.getItem('redirectUrl');
+      localStorage.removeItem('redirectUrl');
 
       if (redirectUrl) {
-        // Remove a URL salva para não reutilizar
-        localStorage.removeItem('redirectUrl');
-
-        // Tenta navegar para a URL salva
-        this.router.navigateByUrl(redirectUrl)
-          .catch(() => {
-            // Se falhar, redireciona baseado no role
-            this.redirectService.redirectBasedOnRole();
-          });
+        this.router.navigateByUrl(redirectUrl).catch(() => {
+          this.redirectService.redirectBasedOnRole();
+        });
       } else {
-        // Se não há URL salva, redireciona baseado no role do usuário
         this.redirectService.redirectBasedOnRole();
       }
-
-      this.isLoading = false;
-    }, 100);
-  }
-
-  /**
-   * Versão alternativa usando verificação explícita do token
-   * (Mantida para referência - use a versão simplificada acima)
-   */
-  private handleLoginSuccessAlternative(response: any, email: string) {
-    // Salva email no localStorage
-    if (this.isBrowser && response.email) {
-      localStorage.setItem(this.LAST_EMAIL_KEY, response.email);
-    }
-
-    // 1. Salva token no AuthService
-    this.authService.saveToken(response.token);
-    this.isLoading = true;
-
-    // 2. Redireciona após processamento
-    setTimeout(() => {
-      // Obter token decodificado
-      const token = this.authService.getToken();
-
-      if (token) {
-        try {
-          // Decodifica token para extrair role
-          const decoded: any = jwtDecode(token);
-          const roleClaim = decoded['role'] ||
-                           decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
-                           'teamMember';
-
-          // Obtém URL de redirecionamento salva (se houver)
-          const redirectUrl = localStorage.getItem('redirectUrl');
-          localStorage.removeItem('redirectUrl');
-
-          let targetRoute: string;
-
-          if (redirectUrl) {
-            // Verifica permissão para a URL solicitada
-            targetRoute = this.checkRoutePermission(redirectUrl, roleClaim);
-          } else {
-            // Usa rota padrão baseada no role
-            targetRoute = this.getDefaultRouteByRole(roleClaim);
-          }
-
-          // Navega para a rota determinada
-          this.router.navigateByUrl(targetRoute);
-        } catch (error) {
-          console.error(' Erro ao decodificar token:', error);
-          this.router.navigate(['/dashboard']);
-        }
-      } else {
-        this.router.navigate(['/dashboard']);
-      }
-
-      this.isLoading = false;
-    }, 100);
+      // Não precisa reativar loading, o componente será destruído ao navegar
+    }, 50);
   }
 
   /**
@@ -265,16 +223,16 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
 
     // Mapeamento de roles para rotas
     const roleRoutes: Record<string, string> = {
-      'administrador': '/admin',
-      'admin': '/admin',
-      'administrator': '/admin',
-      'teammember': '/dashboard',
-      'member': '/dashboard',
-      'user': '/dashboard',
+      administrador: '/admin',
+      admin: '/admin',
+      administrator: '/admin',
+      teammember: '/user',
+      member: '/user',
+      user: '/user',
     };
 
     // Retorna rota correspondente ou fallback
-    return roleRoutes[roleLower] || '/dashboard';
+    return roleRoutes[roleLower] || '/user';
   }
 
   /**
@@ -293,9 +251,9 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
 
     // TeamMember tentando acessar área admin → redireciona para dashboard
     if ((role === 'teammember' || role === 'member') && requestedRoute.includes('/admin')) {
-      console.warn(`🚫 Acesso negado: TeamMember tentando acessar admin: ${requestedRoute}`);
+      console.warn(`Acesso negado: TeamMember tentando acessar admin: ${requestedRoute}`);
       // Pode exibir um alerta ou mensagem toast aqui
-      return '/dashboard';
+      return '/user';
     }
 
     // Para outras situações, permite a rota solicitada
@@ -375,7 +333,9 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
    */
   private autoFocusFirstField() {
     setTimeout(() => {
-      const emailInput = document.querySelector('input[formControlName="email"]') as HTMLInputElement;
+      const emailInput = document.querySelector(
+        'input[formControlName="email"]',
+      ) as HTMLInputElement;
       if (emailInput && !this.loginForm.get('email')?.value) {
         emailInput.focus();
       }
@@ -386,7 +346,7 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
    * Marca todos os campos como tocados para exibir erros
    */
   private markAllFieldsAsTouched() {
-    Object.keys(this.loginForm.controls).forEach(key => {
+    Object.keys(this.loginForm.controls).forEach((key) => {
       this.loginForm.get(key)?.markAsTouched();
     });
   }
@@ -395,9 +355,7 @@ export class LoginComponent implements AfterViewInit, OnDestroy {
    * Limpa mensagens de erro e sucesso
    */
   private clearMessages() {
-    if (!this.sessionExpired) {
-      this.errorMessage = '';
-    }
+    this.errorMessage = '';
     this.successMessage = '';
   }
 

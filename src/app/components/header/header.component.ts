@@ -1,15 +1,19 @@
 // src/app/components/header/header.component.ts
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { AuthService, UserProfile } from '../../services/auth-services';
+import { Subscription, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { AuthService, UserProfile } from '../../services/auth-service';
 import { jwtDecode } from 'jwt-decode';
 import { MatIconModule } from '@angular/material/icon';
+import { ThemeService } from '../../services/theme.service';
+import { NotificationPopupComponent } from '../notification-popup/notification-popup.component';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterModule, MatIconModule],
+  imports: [RouterModule, MatIconModule, NotificationPopupComponent],
   templateUrl: './header.html',
   styleUrls: ['./header.css'],
 })
@@ -22,20 +26,49 @@ export class HeaderComponent implements OnInit, OnDestroy {
   isLoggedIn = false;
   isUserAdmin = false;
   isUserTeamMember = false;
+  isDark = false;
 
+  showNotifications = false;
+  unreadNotificationsCount = 0;
+  private notificationSubscription?: Subscription;
+
+  private destroy$ = new Subject<void>();
   private userSubscription?: Subscription;
 
-  constructor(private readonly authService: AuthService, private readonly router: Router) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly themeService: ThemeService,
+    private notificationService: NotificationService,
+  ) {}
 
   ngOnInit() {
     this.loadUserFromToken();
 
-    this.userSubscription = this.authService.currentUser$.subscribe((user: UserProfile | null) => {
-      this.updateUserData(user);
+    this.userSubscription = this.authService.currentUser$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((user: UserProfile | null) => {
+        this.updateUserData(user);
+      });
+
+    this.themeService.currentTheme$.pipe(takeUntil(this.destroy$)).subscribe((theme) => {
+      this.isDark = theme === 'dark';
     });
+
+    if (this.isLoggedIn) {
+      this.updateUnreadCount();
+      // Atualizar a cada 30 segundos
+      setInterval(() => this.updateUnreadCount(), 30000);
+    }
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.userSubscription) {
       this.userSubscription.unsubscribe();
     }
@@ -96,7 +129,7 @@ export class HeaderComponent implements OnInit, OnDestroy {
         }
       }
 
-      this.userName = user.name.charAt(0).toUpperCase() + user.name.slice(1);
+      this.userName = this.formatUserName(user.name);
       this.userEmail = user.email;
       this.userRole = user.role || 'N/A';
       this.userInitials = this.getInitials(user.name);
@@ -129,17 +162,53 @@ export class HeaderComponent implements OnInit, OnDestroy {
       : (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   }
 
+  private formatUserName(name: string): string {
+    return name
+      .toLowerCase()
+      .split(' ')
+      .filter((word) => word)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   @HostListener('document:click', ['$event'])
   onClickOutside(event: Event) {
     const target = event.target as HTMLElement;
     if (!target.closest('.user-menu-container') && !target.closest('.user-info')) {
       this.showUserMenu = false;
     }
+    if (!target.closest('.notification-container') && !target.closest('.notification-icon')) {
+      this.showNotifications = false;
+    }
+  }
+
+  toggleNotifications(event: Event): void {
+    event.stopPropagation();
+    this.showNotifications = !this.showNotifications;
+    if (this.showUserMenu) {
+      this.showUserMenu = false;
+    }
+  }
+
+  closeNotifications(): void {
+    this.showNotifications = false;
+  }
+
+  onNotificationRead(notificationId: number): void {
+    // Atualizar contador
+    this.updateUnreadCount();
+  }
+
+  updateUnreadCount(): void {
+    // Opcional: chamar API para obter contagem
+    this.notificationService.getNotifications().subscribe((notifications) => {
+      this.unreadNotificationsCount = notifications.length;
+    });
   }
 
   navigateToHome() {
     if (this.isLoggedIn) {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/user']);
     } else {
       this.router.navigate(['/login']);
     }
@@ -162,9 +231,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
       this.router.navigate(['/admin']);
     } else {
       alert(
-        `Acesso negado! \n\nSeu usuário tem a role: "${this.userRole}" \n\nApenas administradores podem acessar esta área.`
+        `Acesso negado! \n\nSeu usuário tem a role: "${this.userRole}" \n\nApenas administradores podem acessar esta área.`,
       );
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/user']);
     }
   }
 

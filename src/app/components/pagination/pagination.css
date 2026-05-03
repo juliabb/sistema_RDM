@@ -1,0 +1,94 @@
+/* src/app/components/pagination/pagination.css */
+/* ==================== PAGINAÇÃO COMPLETA ==================== */
+.pagination-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--gray-200);
+  background: var(--gray-50);
+  gap: var(--spacing-md);
+}
+
+.pagination-info {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  font-weight: var(--font-weight-medium);
+  flex: 1;
+  min-width: 200px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+  justify-content: center;
+  flex: 2;
+}
+
+.pagination-controls .btn-sm {
+  min-width: 36px;
+  height: 36px;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-btn {
+  background: var(--white);
+  border: 1px solid var(--gray-300);
+  color: var(--gray-700);
+  font-weight: var(--font-weight-medium);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--gray-100);
+  border-color: var(--primary-500);
+  color: var(--primary-700);
+}
+
+.pagination-btn.active {
+  background: var(--primary-700);
+  border-color: var(--primary-700);
+  color: #f3f4f6;
+}
+
+.pagination-size {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex: 1;
+  min-width: 150px;
+  justify-content: flex-end;
+}
+
+.pagination-size label {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  font-weight: var(--font-weight-medium);
+}
+
+.pagination-size select {
+  width: auto;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  background: var(--white);
+  color: var(--gray-800);
+  cursor: pointer;
+}
+
+.pagination-size select:focus {
+  outline: none;
+  border-color: var(--primary-700);
+  box-shadow: 0 0 0 2px rgba(80, 8, 120, 0.1);
+}
+
+/* Remove a paginação antiga */
+.table-container .pagination {
+  display: none;
+}

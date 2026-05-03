@@ -26,11 +26,19 @@
 
 /* Conteúdo principal */
 .admin-main-content {
-  flex: 1;
+  margin-left: 70px;
+  width: calc(100% - 70px);
+  transition:
+    margin-left 0.25s ease,
+    width 0.25s ease;
+}
+
+/* Quando a sidebar estiver em hover, expande o conteúdo */
+:host:hover .sidebar ~ .admin-main-content,
+.app-container:hover .sidebar ~ .admin-main-content,
+.sidebar:hover ~ .admin-main-content {
   margin-left: 280px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  width: calc(100% - 280px);
 }
 
 /* Área de conteúdo */
@@ -73,8 +81,8 @@
   }
 
   .admin-main-content {
-    margin-left: 0;
-    margin-top: 0;
+    margin-left: 0 !important;
+    width: 100% !important;
   }
 }
 

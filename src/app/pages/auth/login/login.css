@@ -1,18 +1,19 @@
 .container {
   display: flex;
-  height: 100vh;
+  min-height: 100vh; /* altura mínima da tela, mas pode crescer */
+  align-items: stretch;
 }
 
 .divider {
   flex: 1;
-  position: relative; /* Necessário para o pseudo-elemento */
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: var(--spacing-xxl);
   color: var(--white);
-  overflow: hidden; /* Esconde qualquer parte do pseudo-elemento que saia da área */
+  overflow: hidden;
 }
 
 /* Camada da imagem de fundo */
@@ -23,7 +24,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('../../../../../public/img/background-prodesp.jpg');
+  background-image: url('../../../../../public/img/bg_shiftflow.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -34,27 +35,33 @@
 .divider::after {
   content: '';
   position: absolute;
-  top: 0;
-  /* LEFT negativo - igual ao do site oficial */
-  left: -1000px !important;
-  /* WIDTH enorme - igual ao do site oficial */
-  width: 3200px !important;
+  inset: 0;
+  width: 100%;
   height: 100%;
-  /* Gradiente oficial da Prodesp */
-  background: linear-gradient(to right, rgba(80, 8, 120), rgba(0, 0, 0, 0.6)) !important;
   z-index: 1;
+
+  background:
+    radial-gradient(
+      circle at 42% 42%,
+      rgba(0, 184, 217, 0.32) 0%,
+      rgba(0, 184, 217, 0.14) 32%,
+      transparent 58%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(2, 6, 23, 0.9) 0%,
+      rgba(6, 43, 54, 0.84) 42%,
+      rgba(0, 107, 134, 0.62) 74%,
+      rgba(109, 40, 217, 0.26) 100%
+    );
 }
+
 
 /* Os elementos dentro do .divider devem ficar acima das camadas de fundo */
 .divider .logo,
 .divider .text {
   position: relative;
   z-index: 2;
-}
-
-.logo {
-  width: 15vw;
-  margin-bottom: var(--spacing-xxl);
 }
 
 .text {
@@ -65,11 +72,13 @@
   font-size: 2.5rem;
   margin-bottom: var(--spacing-md);
   font-weight: 700;
+  color: #f1f3f5;
 }
 
 .title p {
   font-size: 1.2rem;
   opacity: 0.9;
+  color: #f1f3f5;
 }
 
 .right {
@@ -100,10 +109,11 @@
   margin-bottom: var(--spacing-lg);
 }
 
+
 .btn-primary {
   width: 100%;
   padding: var(--spacing-md);
-  background: var(--primary-700);
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 100%);
   color: var(--white);
   border: none;
   border-radius: var(--border-radius);
@@ -114,12 +124,18 @@
   margin-bottom: var(--spacing-md);
 }
 
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-800) 0%, var(--secondary-600) 100%);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
 .btn-secondary {
   width: 100%;
   padding: var(--spacing-md);
-  background: var(--white);
-  color: var(--primary-700);
-  border: 2px solid var(--primary-700);
+  background: transparent;
+  color: var(--primary-500);
+  border: 2px solid var(--primary-500);
   border-radius: var(--border-radius);
   font-size: 16px;
   font-weight: 600;
@@ -127,18 +143,37 @@
   transition: all 0.3s ease;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-800);
+.btn-secondary:hover:not(:disabled) {
+  background: var(--primary-50);
+  color: var(--primary-700);
+  border-color: var(--primary-500);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: var(--primary-100);
-  color: var(--secondary-dark);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+.link-help {
+  text-align: center;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-700);
+  text-decoration: none;
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background-color: var(--gray-50);
+  border: 1px solid var(--gray-200);
 }
+
+.link-help:hover {
+  color: var(--primary-500);
+  background-color: var(--primary-50);
+  text-decoration: none;
+  border-color: var(--primary-500);
+}
+
 
 button:disabled {
   opacity: 0.6;
@@ -169,6 +204,10 @@ button:disabled {
   font-size: 14px;
 }
 
+.version-info {
+  text-align: center;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -186,6 +225,83 @@ button:disabled {
   }
 }
 
+/* Esqueci a senha */
+.forgot-password-link {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.forgot-password-link mat-icon {
+  font-size: 1.2rem;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.forgot-password-link a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-700);
+  text-decoration: none;
+  transition: color 0.2s, background-color 0.2s, border-color 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  background-color: var(--gray-50);
+  border: 1px solid var(--gray-200);
+}
+
+.forgot-password-link a:hover {
+  color: var(--primary-500);
+  background-color: var(--primary-50);
+  text-decoration: none;
+  border-color: var(--primary-500);
+}
+
+.email-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Modal de Ajuda */
+.help-modal-content {
+  padding: 10px 0;
+}
+
+.help-modal-content h4 {
+  margin-top: 0;
+  color: #333;
+}
+
+.help-modal-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0;
+}
+
+.help-modal-content li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+}
+
+.help-modal-content li mat-icon {
+  color: #0078d4;
+  width: 24px;
+  text-align: center;
+}
+
+.help-note {
+  margin-top: 20px;
+  font-size: 0.8rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Responsivo */
 @media (max-width: 768px) {
   .container {
     flex-direction: column;

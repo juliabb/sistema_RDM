@@ -1,7 +1,7 @@
 // src/app/guards/admin-guard.ts
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
-import { AuthService } from '../services/auth-services';
+import { AuthService } from '../services/auth-service';
 
 export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
@@ -15,8 +15,8 @@ export const adminGuard: CanActivateFn = () => {
 
   // Depois verifica se é administrador
   if (!authService.isAdmin()) {
-    // Redireciona para dashboard com parâmetro de erro
-    router.navigate(['/dashboard'], {
+    // Redireciona para /user com parâmetro de erro
+    router.navigate(['/user'], {
       queryParams: {
         error: 'access_denied',
         message: 'Apenas administradores podem acessar esta área.',

@@ -51,5 +51,33 @@
     Criar conta
   </button>
 
+  <div class="version-info">
+    <small>Versão {{ version }}</small>
+  </div>
 
+  <!-- Link Esqueci a senha -->
+  <div class="forgot-password-link">
+    <span (click)="openHelpModal()" (keydown.enter)="openHelpModal()" tabindex="0" role="button" class="link-help">
+      <mat-icon>chat</mat-icon> Precisa de ajuda?
+    </span>
+  </div>
 </form>
+
+<!-- Modal de Ajuda -->
+@if (showHelpModal) {
+<app-modal [visible]="showHelpModal" title="Suporte Técnico" buttonText="Fechar" [size]="'medium'" [allowScroll]="true"
+  [showCloseButton]="true" [closeOnClickOutside]="true" (closed)="closeHelpModal()">
+
+  <div class="help-modal-content">
+    <h4>Precisa de ajuda?</h4>
+    <p>
+      Em caso de dificuldades para acessar o sistema, dúvidas ou outros problemas,
+      entre em contato com o suporte técnico pelo e-mail abaixo:
+    </p>
+    <div class="email-link">
+      <mat-icon>email</mat-icon>
+      <a href="mailto:suporte@shiftflow.com">suporte@shiftflow.com</a>
+    </div>
+  </div>
+</app-modal>
+}

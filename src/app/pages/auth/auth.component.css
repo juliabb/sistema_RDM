@@ -35,8 +35,12 @@
   max-width: 600px;
 }
 
+.logo {
+  width: 12px;
+}
+
 .logo-img {
-  height: 80px;
+   height: 80px;
   margin-bottom: 2rem;
   filter: brightness(0) invert(1);
 }

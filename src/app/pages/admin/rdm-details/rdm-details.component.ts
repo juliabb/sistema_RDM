@@ -1,18 +1,18 @@
 // src/app/pages/admin/rdm-details/rdm-details.component.ts
 import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule, NavigationEnd } from '@angular/router';
 import { Observable, Subject, filter, takeUntil } from 'rxjs';
-import { RdmService } from '../../../services/rdm-services';
+import { RdmService } from '../../../services/rdm-service';
 import { ModalComponent } from '../../../components/modal/modal.component';
-import { AuthService } from '../../../services/auth-services';
+import { AuthService } from '../../../services/auth-service';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { DateFixerService } from '../../../services/date-fixer.services';
+import { DateFixerService } from '../../../services/date-fixer.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 // Interface para estrutura dos dados do formulário RDM
@@ -38,6 +38,12 @@ interface RDMFormData {
     environment: string;
     iCsImpacted: string;
   };
+  // Impacto e prioridade
+  impactPriority?: {
+    ServiceCondition: string;
+    Impact: string;
+    Urgency: string;
+  };
   deploymentWindow: {
     impactType: string;
   };
@@ -46,6 +52,7 @@ interface RDMFormData {
     moment: string;
     comunicationType: string;
     technologyArea: string;
+    emailsCc?: string[];
   };
   phases?: any;
   planningExecutation?: any;
@@ -83,6 +90,9 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
   isAdminView = false;
   showAdminActions = false;
 
+  // Controle de edição do campo de observação
+  editandoObservacao = false;
+
   // Propriedades para modo de edição
   isEditMode = false;
   isSaving = false;
@@ -93,10 +103,11 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
 
   // Propriedades para controle do modal
   showModal = false;
-  modalType: 'approve' | 'reject' = 'approve';
+  modalType: 'approve' | 'edit' | 'reject' | 'cancel' = 'approve';
   modalTitle = '';
   modalButtonText = 'Fechar';
   rejectionReason = '';
+  correctionReason = '';
   isProcessing = false;
 
   constructor(
@@ -107,6 +118,7 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     private http: HttpClient,
     private dateFormatter: DateFixerService,
     private snackBar: MatSnackBar,
+    private location: Location,
   ) {}
 
   ngOnInit(): void {
@@ -158,20 +170,9 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
    */
   private createEmptyFormData(): RDMFormData {
     return {
-      identification: {
-        type: '',
-        title: '',
-        area: '',
-      },
-      solution: {
-        objectiveOrSolution: '',
-      },
-      category: {
-        objective: '',
-        action: '',
-        impact: '',
-        urgency: '',
-      },
+      identification: { type: '', title: '', area: '' },
+      solution: { objectiveOrSolution: '' },
+      category: { objective: '', action: '', impact: '', urgency: '' },
       impactCategory: {
         changeSystem: '',
         activity: '',
@@ -179,14 +180,27 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
         environment: '',
         iCsImpacted: '',
       },
-      deploymentWindow: {
-        impactType: '',
+      impactPriority: {
+        ServiceCondition: '',
+        Impact: '',
+        Urgency: '',
       },
+      deploymentWindow: { impactType: '' },
       planComunication: {
         whosNotified: '',
         moment: '',
         comunicationType: '',
         technologyArea: '',
+        emailsCc: [], // opcional
+      },
+      phases: {},
+      planningExecutation: {},
+      planningRemediation: {
+        Ativity: '',
+        ProbabilityOfSuccess: '',
+        TechnologyArea: '',
+        WasRemediationPlanned: '',
+        JustificationRemediation: '',
       },
     };
   }
@@ -215,46 +229,100 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     this.showAdminActions = this.authService.isAdmin();
   }
 
+  toggleEditarObservacao(): void {
+    this.editandoObservacao = !this.editandoObservacao;
+  }
+
   /**
    * Popula o formulário de edição com dados da API
    * @param apiData Dados recebidos da API
    */
   private populateFormData(apiData: any): void {
+    // Identificação
     this.formData.identification = {
       type: apiData.identification?.type || '',
       title: apiData.identification?.title || '',
       area: apiData.identification?.area || '',
     };
 
+    // Solução
     this.formData.solution = {
       objectiveOrSolution: apiData.solution?.objectiveOrSolution || '',
     };
 
-    this.formData.category = {
-      objective: apiData.category?.objective || '',
-      action: apiData.category?.action || '',
-      impact: apiData.category?.impact || '',
-      urgency: apiData.category?.urgency || '',
-    };
-
+    // ImpactCategory (categorização)
     this.formData.impactCategory = {
-      changeSystem: apiData.impactCategory?.changeSystem || '',
-      activity: apiData.impactCategory?.activity || '',
-      impactedServices: apiData.impactCategory?.impactedServices || '',
-      environment: apiData.impactCategory?.environment || '',
-      iCsImpacted: apiData.impactCategory?.iCsImpacted || '',
+      changeSystem: apiData.categorization?.systemOrService || '',
+      environment: apiData.categorization?.environmentService || '',
+      activity: apiData.categorization?.objectiveOfTheChange || '',
+      iCsImpacted: apiData.categorization?.affectedItems || '',
+      impactedServices: apiData.impactPriority?.affectedFunctionalities || '',
     };
 
-    this.formData.deploymentWindow = {
-      impactType: apiData.deploymentWindow?.impactType || '',
+    //ImpactPriority
+    this.formData.impactPriority = {
+      ServiceCondition: apiData.impactPriority?.serviceCondition || '',
+      Impact: apiData.impactPriority?.impact || '',
+      Urgency: apiData.impactPriority?.urgency || '',
     };
 
+    // PlanComunication
     this.formData.planComunication = {
       whosNotified: apiData.planComunication?.whosNotified || '',
-      moment: apiData.planComunication?.moment || '',
+      moment: '',
       comunicationType: apiData.planComunication?.comunicationType || '',
       technologyArea: apiData.planComunication?.technologyArea || '',
+      emailsCc: apiData.planComunication?.emailsCc || [],
     };
+
+    // Phases (cronograma)
+    if (apiData.phases) {
+      this.formData.phases = {
+        planning: {
+          WasPlanned: apiData.phases.planning?.wasPlanned || '',
+          JustificationPlanned: apiData.phases.planning?.justification || '',
+        },
+        testHomology: {
+          WasTested: apiData.phases.testHomology?.wasTested || '',
+          JustificationTest: apiData.phases.testHomology?.justification || '',
+        },
+        executionWindow: {
+          startDate: this.formatDateForInput(apiData.phases.executionWindow?.startDate),
+          endDate: this.formatDateForInput(apiData.phases.executionWindow?.endDate),
+        },
+        validation: {
+          startDate: this.formatDateForInput(apiData.phases.validation?.startDate),
+          endDate: this.formatDateForInput(apiData.phases.validation?.endDate),
+        },
+      };
+    }
+
+    // Planning (execução e remediação)
+    if (apiData.planning) {
+      this.formData.planningExecutation = {
+        Ativity: apiData.planning.executionPlanning || '',
+        TechnologyArea: apiData.planning.executingArea || '',
+        ProbabilityOfSuccess: apiData.planning.probabilityOfSuccessExecution || '',
+      };
+
+      this.formData.planningRemediation = {
+        Ativity: apiData.planning.remediationPlanning || '',
+        ProbabilityOfSuccess: apiData.planning.probabilityOfSuccessRemediation || '',
+      };
+    }
+  }
+
+  private formatDateForInput(dateString?: string): string {
+    if (!dateString) return '';
+    // Se a data vier no formato ISO, pode ser convertida para o formato aceito pelo input
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
   /**
@@ -278,7 +346,7 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     this.isSaving = true;
     this.errorMessage = '';
 
-    // Simulação de salvamento (substituir por chamada real à API)
+    // Simulação de salvamento
     setTimeout(() => {
       this.isSaving = false;
       this.isEditMode = false;
@@ -290,12 +358,20 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
         solution: { ...this.formData.solution },
         category: { ...this.formData.category },
         impactCategory: { ...this.formData.impactCategory },
+        impactPriority: { ...this.formData.impactPriority },
         deploymentWindow: { ...this.formData.deploymentWindow },
         planComunication: { ...this.formData.planComunication },
       };
 
       this.showSuccessNotification('Alterações salvas com sucesso!');
     }, 1500);
+  }
+
+  get emailsParaNotificacao(): string[] {
+    if (!this.rdmDetails?.planComunication?.emailsCc) return [];
+    return this.rdmDetails.planComunication.emailsCc.filter(
+      (email: any) => email && typeof email === 'string' && email.trim() !== '',
+    );
   }
 
   /**
@@ -356,17 +432,20 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
 
     rdmObservable.subscribe({
       next: (apiData: any) => {
+        // Extrai o status de onde ele realmente vem (identification.status)
+        const status = apiData.identification?.status || apiData.status || 'Pendente';
+
         this.rdmDetails = {
           ...apiData,
-          // Garante que a data está disponível
-          date: apiData.date,
-          createdAt: apiData.date,
-          dateRequest: apiData.date,
+          status: status, // Garante que status está no nível raiz
+          date: apiData.date || apiData.identification?.dateCreated,
+          createdAt: apiData.date || apiData.identification?.dateCreated,
+          dateRequest: apiData.date || apiData.identification?.dateCreated,
         };
 
         this.isLoading = false;
         this.populateFormData(this.rdmDetails);
-        this.rdmStatus = apiData.status || 'Pendente';
+        this.rdmStatus = status; // Atualiza também a propriedade auxiliar
 
         // Verifica anexo após carregar os detalhes
         this.checkAttachment();
@@ -425,12 +504,15 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     this.downloadingPDF = true;
     this.downloadError = '';
 
+    const title = this.rdmDetails?.title || 'sem-titulo';
+    const sanitizedTitle = title.replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
+
     this.rdmService.downloadRDMReport(this.ticketId).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `RDM-${this.ticketId}-${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.download = `SES_CIC_FORM-${this.ticketId}-${sanitizedTitle}.pdf`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -449,12 +531,12 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
    */
   private checkAttachment(): void {
     if (!this.ticketId) return;
-
     this.rdmService.checkAttachmentExists(this.ticketId).subscribe({
       next: (hasAttachment) => {
         this.hasAttachment = hasAttachment;
       },
-      error: () => {
+      error: (err) => {
+        console.error('Error in checkAttachment subscription:', err);
         this.hasAttachment = false;
       },
     });
@@ -490,32 +572,131 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Retorna label amigável para condição do serviço
+  getServiceConditionLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      SemIndisponibilidade: 'Sem Indisponibilidade',
+      Intermitência: 'Intermitência',
+      IndisponibilidadeParcial: 'Indisponibilidade Parcial',
+      IndisponibilidadeTotal: 'Indisponibilidade Total',
+      'Sem Indisponibilidade': 'Sem Indisponibilidade',
+      Intermitencia: 'Intermitência',
+    };
+    return map[value] || value;
+  }
+
+  // Label genérica para níveis (Baixo/Médio/Alto)
+  getLevelLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      Baixo: 'Baixo',
+      Medio: 'Médio',
+      Alto: 'Alto',
+      Médio: 'Médio',
+    };
+    return map[value] || value;
+  }
+
+  // Retorna descrição textual do risco
+  getRiskLabel(risk: number): string {
+    if (risk <= 3) return '🟢 Baixo';
+    if (risk <= 6) return '🟡 Médio';
+    if (risk <= 7) return '🔴 Alto';
+    return '🔴 Alto';
+  }
+
+  // Retorna o tooltip para cada nível da barra
+  getTooltipForLevel(level: number): string {
+    let classificacao = '';
+    if (level <= 3) {
+      classificacao = '🟢 Baixo';
+    } else if (level <= 6) {
+      classificacao = '🟡 Médio';
+    } else {
+      classificacao = '🔴 Alto';
+    }
+    return `${classificacao}`;
+  }
+
   /**
    * Abre modal para aprovação do RDM
    */
+
   approveRDM(): void {
+    // Verifica se é admin
     if (!this.authService.isAdmin()) {
       this.showErrorNotification('Apenas administradores podem aprovar RDM.');
       return;
     }
 
+    // Status deve ser pendente
+    if (this.rdmDetails?.status?.toLowerCase() !== 'pendente') {
+      this.snackBar.open('Esta RDM não está mais pendente e não pode ser aprovada.', 'Fechar', {
+        duration: 3000,
+        panelClass: ['warning-snackbar'],
+      });
+      return;
+    }
+
     this.modalType = 'approve';
     this.showModal = true;
-    this.rejectionReason = ''; // Limpa motivo de rejeição
+    this.rejectionReason = '';
   }
 
   /**
-   * Abre modal para rejeição do RDM
+   * Abre modal para Reprovação do RDM
    */
   rejectRDM(): void {
     if (!this.authService.isAdmin()) {
       this.showErrorNotification('Apenas administradores podem rejeitar RDM.');
       return;
     }
-
+    if (this.rdmDetails?.status?.toLowerCase() !== 'pendente') {
+      this.snackBar.open('Esta RDM não está mais pendente e não pode ser rejeitada.', 'Fechar', {
+        duration: 3000,
+      });
+      return;
+    }
     this.modalType = 'reject';
     this.showModal = true;
-    this.rejectionReason = ''; // Começa vazio
+    this.rejectionReason = '';
+  }
+
+  editRDM(): void {
+    if (!this.authService.isAdmin()) {
+      this.showErrorNotification('Apenas administradores podem pedir correção RDM.');
+      return;
+    }
+    if (this.rdmDetails?.status?.toLowerCase() !== 'pendente') {
+      this.snackBar.open('Esta RDM não está mais pendente e não pode ser corrigida.', 'Fechar', {
+        duration: 3000,
+      });
+      return;
+    }
+    this.modalType = 'edit';
+    this.showModal = true;
+    this.correctionReason = '';
+  }
+
+  /**
+   * Abre modal de confirmação para cancelar a solicitação (usuário comum)
+   */
+  cancelRequest(): void {
+    // Verifica se o status permite cancelamento
+    const statusLower = this.rdmDetails?.status?.toLowerCase();
+    if (statusLower !== 'pendente' && statusLower !== 'corrigir') {
+      this.snackBar.open('Esta solicitação não pode ser cancelada no momento.', 'Fechar', {
+        duration: 3000,
+        panelClass: ['warning-snackbar'],
+      });
+      return;
+    }
+
+    this.modalType = 'cancel';
+    this.showModal = true;
+    // Não precisamos de motivo, mas podemos manter a variável limpa
+    this.rejectionReason = '';
   }
 
   /**
@@ -523,104 +704,136 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
    * Envia atualização de status para a API
    */
   processRDM(): void {
-    if (!this.ticketId || !this.authService.isAdmin()) return;
+    // Validações comuns a todas as ações (exceto cancel)
+    if (!this.ticketId) {
+      this.snackBar.open('Ticket não identificado.', 'Fechar', { duration: 3000 });
+      return;
+    }
 
-    // Validação específica para reprovação
-    if (this.modalType === 'reject') {
-      if (!this.rejectionReason.trim()) {
-        this.snackBar.open('Informe o motivo da reprovação', 'Fechar', {
+    // AÇÕES DE ADMIN (aprove, reject, edit)
+    if (['approve', 'reject', 'edit'].includes(this.modalType)) {
+      if (!this.authService.isAdmin()) {
+        this.snackBar.open('Apenas administradores podem executar esta ação.', 'Fechar', {
           duration: 3000,
-          panelClass: ['warning-snackbar'],
         });
+        return;
+      }
+    }
+
+    // REPROVAÇÃO
+    if (this.modalType === 'reject') {
+      if (!this.rejectionReason?.trim()) {
+        this.snackBar.open('Informe o motivo da reprovação.', 'Fechar', { duration: 3000 });
         return;
       }
 
       this.isProcessing = true;
+      const payload = { status: 'Reprovado', subject: this.rejectionReason.trim() };
 
-      // REPROVAÇÃO
-      const rejectData = {
-        status: 'Reprovado',
-        subject: this.rejectionReason.trim(),
-      };
-
-      this.rdmService.updateRDMStatus(this.ticketId, rejectData).subscribe({
+      this.rdmService.updateRDMStatus(this.ticketId, payload).subscribe({
         next: () => {
           this.snackBar.open(`RDM ${this.ticketId} reprovada com sucesso!`, 'Fechar', {
             duration: 3000,
-            panelClass: ['success-snackbar'],
           });
-
           this.closeModal();
-
-          // Atualiza o status localmente
-          if (this.rdmDetails) {
-            this.rdmDetails.status = 'Reprovado';
-            this.rdmDetails.rejectionReason = this.rejectionReason;
-          }
-
-          // Recarrega os dados
-          setTimeout(() => {
-            this.loadRDMDetails();
-          }, 1000);
+          if (this.rdmDetails) this.rdmDetails.status = 'Reprovado';
+          setTimeout(() => this.loadRDMDetails(), 1000);
         },
-        error: (error) => {
-          const errorMessage = `Erro ao reprovar RDM ${this.ticketId}`;
-
-          this.snackBar.open(errorMessage, 'Fechar', {
-            duration: 5000,
-            panelClass: ['error-snackbar'],
-          });
-
+        error: () => {
+          this.snackBar.open(`Erro ao reprovar RDM ${this.ticketId}`, 'Fechar', { duration: 5000 });
+          this.isProcessing = false;
           this.closeModal();
         },
         complete: () => {
           this.isProcessing = false;
         },
       });
+      return;
     }
 
     // APROVAÇÃO
-    else if (this.modalType === 'approve') {
+    if (this.modalType === 'approve') {
       this.isProcessing = true;
+      const payload = { status: 'Aprovado', subject: `RDM ${this.ticketId} Aprovada` };
 
-      const approveData = {
-        status: 'Aprovado',
-        subject: `RDM ${this.ticketId} Aprovada`,
-      };
-
-      this.rdmService.updateRDMStatus(this.ticketId, approveData).subscribe({
+      this.rdmService.updateRDMStatus(this.ticketId, payload).subscribe({
         next: () => {
           this.snackBar.open(`RDM ${this.ticketId} aprovada com sucesso!`, 'Fechar', {
             duration: 3000,
-            panelClass: ['success-snackbar'],
           });
-
           this.closeModal();
-
-          // Atualiza o status localmente
-          if (this.rdmDetails) {
-            this.rdmDetails.status = 'Aprovado';
-          }
-
-          // Recarrega os dados
-          setTimeout(() => {
-            this.loadRDMDetails();
-          }, 1000);
+          if (this.rdmDetails) this.rdmDetails.status = 'Aprovado';
+          setTimeout(() => this.loadRDMDetails(), 1000);
         },
-        error: (error) => {
-          const errorMessage = `Erro ao aprovar RDM ${this.ticketId}`;
-
-          this.snackBar.open(errorMessage, 'Fechar', {
-            duration: 5000,
-            panelClass: ['error-snackbar'],
-          });
-
+        error: () => {
+          this.snackBar.open(`Erro ao aprovar RDM ${this.ticketId}`, 'Fechar', { duration: 5000 });
+          this.isProcessing = false;
           this.closeModal();
         },
         complete: () => {
           this.isProcessing = false;
         },
       });
+      return;
+    }
+
+    // CORREÇÃO (edit)
+    if (this.modalType === 'edit') {
+      if (!this.correctionReason?.trim()) {
+        this.snackBar.open('Informe o motivo da correção.', 'Fechar', { duration: 3000 });
+        return;
+      }
+
+      this.isProcessing = true;
+      const payload = { status: 'Corrigir', subject: this.correctionReason.trim() };
+
+      this.rdmService.updateRDMStatus(this.ticketId, payload).subscribe({
+        next: () => {
+          this.snackBar.open(`RDM ${this.ticketId} encaminhada para correção!`, 'Fechar', {
+            duration: 3000,
+          });
+          this.closeModal();
+          if (this.rdmDetails) this.rdmDetails.status = 'Corrigir';
+          setTimeout(() => this.loadRDMDetails(), 1000);
+        },
+        error: () => {
+          this.snackBar.open(`Erro ao solicitar correção da RDM ${this.ticketId}`, 'Fechar', {
+            duration: 5000,
+          });
+          this.isProcessing = false;
+          this.closeModal();
+        },
+        complete: () => {
+          this.isProcessing = false;
+        },
+      });
+      return;
+    }
+
+    // CANCELAMENTO (usuário comum)
+    if (this.modalType === 'cancel') {
+      this.isProcessing = true;
+
+      this.rdmService.cancelRDM(this.ticketId).subscribe({
+        next: () => {
+          this.snackBar.open(`Solicitação ${this.ticketId} cancelada com sucesso!`, 'Fechar', {
+            duration: 3000,
+          });
+          this.closeModal();
+          if (this.rdmDetails) this.rdmDetails.status = 'Cancelado';
+          setTimeout(() => this.loadRDMDetails(), 1000);
+        },
+        error: (error) => {
+          const msg = error?.error?.detail || `Erro ao cancelar a solicitação ${this.ticketId}`;
+          this.snackBar.open(msg, 'Fechar', { duration: 5000 });
+          this.isProcessing = false;
+          this.closeModal();
+        },
+        complete: () => {
+          this.isProcessing = false;
+        },
+      });
+      return;
     }
   }
 
@@ -639,44 +852,6 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
       baixo: 'Baixo',
       medio: 'Médio',
       alto: 'Alto',
-    };
-
-    return map[value] || value;
-  }
-
-  /**
-   * Mapeia valores de atividade para labels amigáveis
-   * @param value Valor da atividade
-   * @returns Label formatada
-   */
-  getActivityLabel(value?: string): string {
-    if (!value) return 'Não informado';
-
-    const map: Record<string, string> = {
-      Ajuste: 'Ajuste',
-      Ativação: 'Ativação',
-      Atualização: 'Atualização',
-      Conserto: 'Conserto',
-      Desativação: 'Desativação',
-      Manutenção: 'Manutenção',
-      Substituição: 'Substituição',
-    };
-
-    return map[value] || value;
-  }
-
-  /**
-   * Mapeia valores de ambiente para labels amigáveis
-   * @param value Valor do ambiente
-   * @returns Label formatada
-   */
-  getEnvironmentLabel(value?: string): string {
-    if (!value) return 'Não informado';
-
-    const map: Record<string, string> = {
-      Produção: 'Produção',
-      Homologação: 'Homologação',
-      Desenvolvimento: 'Desenvolvimento',
     };
 
     return map[value] || value;
@@ -720,42 +895,6 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Mapeia valores de tipo de comunicação para labels amigáveis
-   * @param value Valor do tipo de comunicação
-   * @returns Label formatada
-   */
-  getComunicationTypeLabel(value?: string): string {
-    if (!value) return 'Não informado';
-
-    const map: Record<string, string> = {
-      Email: 'E-mail',
-      Teams: 'Teams',
-      Telefone: 'Telefone',
-    };
-
-    return map[value] || value;
-  }
-
-  /**
-   * Mapeia valores de área de tecnologia para labels amigáveis
-   * @param value Valor da área de tecnologia
-   * @returns Label formatada
-   */
-  getTechnologyAreaLabel(value?: string): string {
-    if (!value) return 'Não informado';
-
-    const map: Record<string, string> = {
-      BancoDeDados: 'Banco de Dados',
-      Linux: 'Linux',
-      Windows: 'Windows',
-      Redes: 'Redes',
-      'Banco de Dados': 'Banco de Dados',
-    };
-
-    return map[value] || value;
-  }
-
-  /**
    * Mapeia valores de estágio para labels amigáveis
    * @param value Valor do estágio
    * @returns Label formatada
@@ -770,6 +909,161 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     };
 
     return map[value] || value;
+  }
+
+  /**
+   * Retorna label amigável para nível de impacto
+   */
+  getImpactLevelLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      SemIndisponibilidade: 'Sem Indisponibilidade',
+      Intermitência: 'Intermitência',
+      IndisponibilidadeParcial: 'Indisponibilidade Parcial',
+      IndisponibilidadeTotal: 'Indisponibilidade Total',
+      'Sem Indisponibilidade': 'Sem Indisponibilidade',
+      Intermitencia: 'Intermitência',
+    };
+    return map[value] || value;
+  }
+
+  /**
+   * Retorna label amigável para urgência
+   */
+  getUrgencyLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      Baixo: 'Baixo',
+      Medio: 'Médio',
+      Alto: 'Alto',
+      Médio: 'Médio',
+    };
+    return map[value] || value;
+  }
+
+  /**
+   * Retorna label amigável para probabilidade de sucesso
+   */
+  getProbabilityLabel(value?: string): string {
+    return this.getUrgencyLabel(value);
+  }
+
+  /**
+   * Retorna label amigável para ambiente
+   */
+  getEnvironmentLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      Produção: 'Produção',
+      Homologação: 'Homologação',
+      Desenvolvimento: 'Desenvolvimento',
+      Treinamento: 'Treinamento',
+    };
+    return map[value] || value;
+  }
+
+  /**
+   * Retorna label amigável para tipo de mudança (activity)
+   */
+  getActivityLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      Atualização: 'Atualização',
+      Correção: 'Correção',
+      Melhoria: 'Melhoria',
+      Desativação: 'Desativação',
+      Substituição: 'Substituição',
+      Implantação: 'Implantação',
+      'Alteração de configuração': 'Alteração de configuração',
+    };
+    return map[value] || value;
+  }
+
+  /**
+   * Retorna label amigável para tipo de comunicação
+   */
+  getComunicationTypeLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      Email: 'E-mail',
+    };
+    return map[value] || value;
+  }
+
+  /**
+   * Retorna label amigável para área de tecnologia
+   */
+  getTechnologyAreaLabel(value?: string): string {
+    if (!value) return 'Não informado';
+    const map: Record<string, string> = {
+      BancoDeDados: 'Banco de Dados',
+      Linux: 'Linux',
+      Windows: 'Windows',
+      Redes: 'Redes',
+      Seguranca: 'Segurança',
+      'Banco de Dados': 'Banco de Dados',
+    };
+    return map[value] || value;
+  }
+
+  /**
+   * Determina se os campos de URL do sistema e repositório Git devem ser exibidos
+   * Mesma lógica do formulário: Atividade = 'Atualização' e Área != 'BancoDeDados' e != 'Seguranca'
+   */
+  shouldShowUrlAndGit(): boolean {
+    if (!this.rdmDetails) return false;
+    const activity = this.rdmDetails.categorization?.objectiveOfTheChange || '';
+    const area = this.rdmDetails.planning?.executingArea || '';
+    return activity === 'Atualização' && area !== 'BancoDeDados' && area !== 'Seguranca';
+  }
+
+  /**
+   * Verifica se deve exibir o card de informações técnicas.
+   * Só exibe se a condição geral (atividade/área) for verdadeira
+   * E se pelo menos um dos campos (systemUrl ou gitUrl) tiver valor válido.
+   */
+  shouldShowUrlAndGitCard(): boolean {
+    if (!this.rdmDetails) return false;
+    // Condição básica de exibição (mesma do formulário)
+    const basicCondition = this.shouldShowUrlAndGit();
+    if (!basicCondition) return false;
+
+    const systemUrl = this.rdmDetails.planning?.systemUrl;
+    const gitUrl = this.rdmDetails.planning?.gitUrl;
+
+    const hasValidSystem = systemUrl && systemUrl.trim() !== '' && systemUrl !== 'Não Aplicável';
+    const hasValidGit = gitUrl && gitUrl.trim() !== '' && gitUrl !== 'Não Aplicável';
+
+    return hasValidSystem || hasValidGit;
+  }
+
+  /**
+   * Verifica se o campo systemUrl possui valor válido para exibição.
+   */
+  hasValidUrlField(): boolean {
+    const systemUrl = this.rdmDetails?.planning?.systemUrl;
+    return systemUrl && systemUrl.trim() !== '' && systemUrl !== 'Não Aplicável';
+  }
+
+  /**
+   * Verifica se o campo gitUrl possui valor válido para exibição.
+   */
+  hasValidGitField(): boolean {
+    const gitUrl = this.rdmDetails?.planning?.gitUrl;
+    return gitUrl && gitUrl.trim() !== '' && gitUrl !== 'Não Aplicável';
+  }
+
+  /**
+   * Verifica se uma string é uma URL HTTP/HTTPS válida.
+   */
+  isValidHttpUrl(value: string | undefined | null): boolean {
+    if (!value) return false;
+    try {
+      const url = new URL(value);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -858,17 +1152,19 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
   closeModal(): void {
     this.showModal = false;
     this.rejectionReason = '';
+    this.correctionReason = '';
     this.isProcessing = false;
   }
 
   /**
-   * Retorna para a tela anterior baseada no contexto
+   * Retorna para a tela anterior
    */
   goBack(): void {
-    if (this.isAdminView) {
-      this.router.navigate(['/admin/pending-rdm']);
+    if (window.history.length > 1) {
+      this.location.back();
     } else {
-      this.router.navigate(['/dashboard']);
+      // fallback para uma rota padrão
+      this.router.navigate(['/user']);
     }
   }
 
@@ -887,6 +1183,7 @@ export class RDMDetailsComponent implements OnInit, OnDestroy {
     if (statusLower.includes('concluída') || statusLower.includes('concluido')) return 'completed';
     if (statusLower.includes('em análise') || statusLower.includes('analise')) return 'analysis';
     if (statusLower.includes('cancelada') || statusLower.includes('cancelado')) return 'cancelled';
+    if (statusLower.includes('corrigir')) return 'correction';
 
     return 'pending';
   }

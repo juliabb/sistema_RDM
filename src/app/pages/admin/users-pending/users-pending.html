@@ -1,5 +1,5 @@
 <!-- src/app/pages/admin/users-pending/users-pending.html -->
-<div class="users-pending-container container-content-dashboard">
+<div class="users-pending-container container-content-dashboard container-admin-painel">
   <!-- Cabeçalho com botão de atualizar -->
   <div class="section-header">
     <div class="header-row">
@@ -24,8 +24,8 @@
   <div class="search-bar">
     <div class="search-wrapper">
       <i class="fas fa-search search-icon"></i>
-      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchUsers()"
-        placeholder="Buscar por nome ou email" class="search-input">
+      <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="searchUsers()" placeholder="Buscar por nome ou email"
+        class="search-input">
     </div>
     <div class="search-info">
       <i class="fas fa-users"></i> {{ filteredUsers.length }} usuário(s) encontrado(s)
@@ -71,20 +71,23 @@
             </div>
           </td>
           <td>
-            <span class="status-badge" [class]="getSituationClass(user.situation)">
+            <span class="status-badge" [ngClass]="getSituationClass(user.situation).toLowerCase()">
               <i class="fas fa-circle"></i>
               {{ user.situation || 'Pendente' }}
             </span>
           </td>
           <td class="actions">
             <div class="action-buttons">
-              <button class="btn btn-info btn-sm" (click)="viewUserDetails(user.email)" title="Ver detalhes do usuário">
+              <button class="btn btn-info btn-sm" (click)="viewUserDetails(user.email)" title="Ver detalhes do usuário"
+                aria-label="Ver detalhes do usuário">
                 <i class="fas fa-eye"></i> Ver mais
               </button>
-              <button class="btn btn-success btn-sm" (click)="openApproveModal(user)" title="Aprovar usuário">
+              <button class="btn btn-success btn-sm" (click)="openApproveModal(user)" title="Aprovar usuário"
+                aria-label="Aprovar usuário">
                 <i class="fas fa-check"></i> Aprovar
               </button>
-              <button class="btn btn-danger btn-sm" (click)="openRejectModal(user)" title="Rejeitar usuário">
+              <button class="btn btn-danger btn-sm" (click)="openRejectModal(user)" title="Rejeitar usuário"
+                aria-label="Rejeitar usuário">
                 <i class="fas fa-times"></i> Reprovar
               </button>
             </div>
@@ -100,7 +103,8 @@
               <mat-icon class="empty-icon">mark_email_read</mat-icon>
               <h3> Nenhum usuário pendente!</h3>
               <p>Todos os usuários foram processados.</p>
-              <button class="btn btn-primary" (click)="refreshData()">
+              <button class="btn btn-primary reload" (click)="refreshData()" title="Recarregar lista"
+                aria-label="Recarregar lista">
                 <i class="fas fa-sync-alt"></i> Recarregar
               </button>
             </div>
@@ -111,6 +115,12 @@
     </table>
   </div>
   }
+
+  <!-- Paginação com o componente -->
+  <app-pagination [totalItems]="totalItems" [currentPage]="currentPage" [pageSize]="pageSize"
+    [pageSizeOptions]="pageSizeOptions" [isLoading]="isLoading" (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)">
+  </app-pagination>
 
   <!-- MODAL -->
   <app-modal [visible]="showModal" [title]="modalTitle" [size]="'medium'" [allowScroll]="true"
@@ -139,7 +149,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">Status:</span>
-              <span class="status-badge" [class]="getSituationClass(selectedUser.situation)">
+              <span class="status-badge" [ngClass]="getSituationClass(selectedUser.situation).toLowerCase()">
                 {{ selectedUser.situation }}
               </span>
             </div>

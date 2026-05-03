@@ -5,8 +5,10 @@
   padding: 0 var(--spacing-xl);
   background: var(--header-bg);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-  position: relative;
-  z-index: var(--z-header);
+  position: fixed !important; /* IMPORTANTE: fixo no topo */
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 999 !important;
   height: 70px;
   width: 100%;
   border-bottom: 1px solid var(--header-border);
@@ -101,7 +103,7 @@
 
 .user-name {
   font-weight: var(--font-weight-semibold);
-  color: var(--white);
+  color: #f4f4f5;
   font-size: var(--font-size-sm);
   white-space: nowrap;
   overflow: hidden;
@@ -186,7 +188,7 @@
 .dropdown-user-info strong {
   display: block;
   font-size: var(--font-size-sm);
-  color: var(--white);
+  color: #f4f4f5;
   margin-bottom: var(--spacing-xs);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
@@ -236,8 +238,8 @@
 }
 
 .dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--white);
+  background: #6d28d9;
+  color: #e6eaf2;
   padding-left: calc(var(--spacing-lg) + 4px);
 }
 
@@ -260,6 +262,152 @@
   width: var(--icon-size-sm) !important;
   height: var(--icon-size-sm) !important;
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================
+   SWITCH DE TEMA (CLARO/ESCURO)
+   ============================================ */
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 64px;
+  height: 32px;
+  cursor: pointer;
+  margin: 0 var(--spacing-md);
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.theme-switch input:focus-visible + .slider {
+  outline: 2px solid var(--primary-300);
+  outline-offset: 2px;
+}
+
+.theme-switch .slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--primary-200);
+  border-radius: var(--border-radius-pill);
+  transition: background-color var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.theme-switch .slider .icon-light,
+.theme-switch .slider .icon-dark {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: var(--primary-800);
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.theme-switch .slider .icon-light {
+  opacity: 1;
+}
+
+.theme-switch .slider .icon-dark {
+  opacity: 0;
+}
+
+.theme-switch .slider::before {
+  content: '';
+  position: absolute;
+  height: 24px;
+  width: 24px;
+  left: 4px;
+  bottom: 4px;
+  background-color: var(--white);
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+/* Estado ativo (tema escuro) */
+.theme-switch input:checked + .slider {
+  background-color: var(--primary-500);
+}
+
+.theme-switch input:checked + .slider .icon-light {
+  opacity: 0;
+}
+
+.theme-switch input:checked + .slider .icon-dark {
+  opacity: 1;
+  color: var(--white);
+}
+
+.theme-switch input:checked + .slider::before {
+  transform: translateX(32px);
+}
+
+body.dark-theme .theme-switch .slider {
+  background-color: var(--gray-600);
+}
+
+body.dark-theme .theme-switch .slider .icon-light,
+body.dark-theme .theme-switch .slider .icon-dark {
+  color: var(--gray-200);
+}
+
+/* Container de notificações */
+.notification-container {
+  position: relative;
+  margin: 0 8px;
+}
+
+.notification-icon {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  position: relative;
+}
+
+.notification-icon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.notification-icon mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #f44336;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.2;
+  border: 2px solid var(--header-bg);
 }
 
 /* Responsividade */

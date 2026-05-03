@@ -28,6 +28,7 @@ export class RegisterComponent implements OnDestroy {
   showApprovalModal = false;
   modalSize: 'small' | 'medium' | 'large' | 'xlarge' = 'small';
   allowModalScroll = false;
+  fieldErrors: { [key: string]: string } = {};
 
   private readonly API_TIMEOUT = 10000;
 
@@ -76,27 +77,25 @@ export class RegisterComponent implements OnDestroy {
     return null;
   }
 
-  private emailMatchValidator(control: AbstractControl) {
-    const email = control.get('email')?.value;
-    const confirmarEmail = control.get('confirmarEmail')?.value;
+private emailMatchValidator(control: AbstractControl) {
+  const email = control.get('email')?.value;
+  const confirmarEmail = control.get('confirmarEmail')?.value;
 
-    if (email !== confirmarEmail) {
-      control.get('confirmarEmail')?.setErrors({ emailMismatch: true });
-      return { emailMismatch: true };
-    }
-    return null;
+  if (email !== confirmarEmail) {
+    return { emailMismatch: true };
   }
+  return null;
+}
 
-  private passwordMatchValidator(control: AbstractControl) {
-    const password = control.get('password')?.value;
-    const confirmarPassword = control.get('confirmarPassword')?.value;
+ private passwordMatchValidator(control: AbstractControl) {
+  const password = control.get('password')?.value;
+  const confirmarPassword = control.get('confirmarPassword')?.value;
 
-    if (password !== confirmarPassword) {
-      control.get('confirmarPassword')?.setErrors({ passwordMismatch: true });
-      return { passwordMismatch: true };
-    }
-    return null;
+  if (password !== confirmarPassword) {
+    return { passwordMismatch: true };
   }
+  return null;
+}
 
   ngOnDestroy() {
     if (this.timeoutId) {
@@ -162,6 +161,73 @@ export class RegisterComponent implements OnDestroy {
     });
   }
 
+// Método para obter mensagens de erro amigáveis
+getFieldErrorMessage(fieldName: string): string {
+  const control = this.registerForm.get(fieldName);
+  if (!control || !control.errors || !(control.touched || control.dirty)) {
+    return '';
+  }
+
+  const errors = control.errors;
+
+  if (errors['required']) {
+    return `${this.getFieldLabel(fieldName)} é obrigatório`;
+  }
+  if (errors['minlength']) {
+    const requiredLength = errors['minlength'].requiredLength;
+    return `${this.getFieldLabel(fieldName)} deve ter pelo menos ${requiredLength} caracteres`;
+  }
+  if (errors['email']) {
+    return 'Email inválido';
+  }
+  if (errors['emailMismatch']) {
+    return 'Os emails não coincidem';
+  }
+  if (errors['passwordMismatch']) {
+    return 'As senhas não coincidem';
+  }
+  if (errors['passwordStrength']) {
+    return 'Senha não atende aos requisitos de segurança';
+  }
+
+  return 'Campo inválido';
+}
+
+// Método auxiliar para labels amigáveis
+private getFieldLabel(fieldName: string): string {
+  const labels: { [key: string]: string } = {
+    'nome': 'Nome',
+    'sobrenome': 'Sobrenome',
+    'email': 'Email',
+    'confirmarEmail': 'Confirmação de email',
+    'departamento': 'Departamento',
+    'password': 'Senha',
+    'confirmarPassword': 'Confirmação de senha'
+  };
+  return labels[fieldName] || fieldName;
+}
+
+// Método para verificar se um campo específico é válido
+isFieldValid(fieldName: string): boolean {
+  const control = this.registerForm.get(fieldName);
+  return !!control && control.valid && (control.touched || control.dirty);
+}
+
+// Melhore o hasError para incluir mais tipos de erro
+hasError(controlName: string, errorType: string): boolean {
+  const control = this.registerForm.get(controlName);
+  return !!control && control.hasError(errorType) && (control.touched || control.dirty);
+}
+
+// Adicione um método para debug
+debugForm() {
+  console.group('Debug do Formulário');
+  Object.keys(this.registerForm.controls).forEach(key => {
+    const control = this.registerForm.get(key);
+  });
+  console.groupEnd();
+}
+
   private handleRegisterError(error: any) {
     if (error.error?.errorMessages?.[0]) {
       const errorMsg = error.error.errorMessages[0];
@@ -180,11 +246,6 @@ export class RegisterComponent implements OnDestroy {
     setTimeout(() => {
       this.toggleMode.emit();
     }, 100);
-  }
-
-  hasError(controlName: string, errorType: string): boolean {
-    const control = this.registerForm.get(controlName);
-    return !!control && control.hasError(errorType) && (control.touched || control.dirty);
   }
 
   hasEmailMismatch(): boolean {

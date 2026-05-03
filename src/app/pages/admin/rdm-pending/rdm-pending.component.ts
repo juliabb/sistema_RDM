@@ -1,20 +1,28 @@
 // src/app/pages/admin/rdm-pending/rdm-pending.component.ts
 import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
-import { RdmService } from '../../../services/rdm-services';
+import { RdmService } from '../../../services/rdm-service';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { CommonModule } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ModalComponent } from '../../../components/modal/modal.component';
-import { DateFixerService } from '../../../services/date-fixer.services';
+import { DateFixerService } from '../../../services/date-fixer.service';
 import type { RDM } from '../../../models/rdm-models';
+import { PaginationComponent } from '../../../components/pagination/pagination.component';
 
 @Component({
   selector: 'app-rdm-pending',
   standalone: true,
-  imports: [FormsModule, CommonModule, MatIconModule, MatProgressSpinnerModule, ModalComponent],
+  imports: [
+    FormsModule,
+    CommonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    ModalComponent,
+    PaginationComponent,
+  ],
   providers: [RdmService, MatSnackBar],
   templateUrl: './rdm-pending.html',
   styleUrls: ['./rdm-pending.css'],
@@ -36,8 +44,9 @@ export class PendingRDMComponent implements OnInit {
   pageSize = 10;
   totalItems = 0;
   totalPages = 0;
+  pageSizeOptions: number[] = [5, 10, 20, 50];
 
-  // Controle de modais de aprovação/rejeição
+  // Controle de modais de aprovação/Reprovação
   showApproveModal = false;
   showRejectModal = false;
   selectedRDM: RDM | null = null;
@@ -64,11 +73,32 @@ export class PendingRDMComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
+    // Ajuste: use observe: 'response' para acessar os headers
     this.rdmService.getPendingRDM(this.currentPage, this.pageSize).subscribe({
-      next: (data: any) => {
+      next: (response: any) => {
+        // Se o serviço retorna HttpResponse, extraia body e headers
+        let data: RDM[];
+        if (response.body) {
+          data = response.body;
+          // Tenta extrair total do header
+          const totalCount =
+            response.headers.get('X-Total-Count') || response.headers.get('Pagination');
+          if (totalCount) {
+            this.totalItems = parseInt(totalCount, 10);
+            this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+          } else {
+            // Fallback se não houver header: assume que data.length é o total (pior caso)
+            this.totalItems = data.length;
+            this.totalPages = 1;
+          }
+        } else {
+          // Se o serviço retorna array diretamente (sem HttpResponse), sem headers
+          data = response;
+          this.totalItems = data.length;
+          this.totalPages = Math.ceil(this.totalItems / this.pageSize);
+        }
+
         this.pendingRDM = data;
-        this.totalItems = data.length;
-        this.totalPages = Math.ceil(this.totalItems / this.pageSize);
         this.filteredRDM = [...data];
         this.isLoading = false;
       },
@@ -77,6 +107,20 @@ export class PendingRDMComponent implements OnInit {
         this.isLoading = false;
       },
     });
+  }
+
+  changePageSize(size: number): void {
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.loadPendingRDM();
+  }
+
+  onPageChange(page: number): void {
+    this.changePage(page);
+  }
+
+  onPageSizeChange(size: number): void {
+    this.changePageSize(size);
   }
 
   /**
@@ -209,7 +253,7 @@ export class PendingRDMComponent implements OnInit {
   }
 
   /**
-   * Abre modal de rejeição para RDM específico
+   * Abre modal de Reprovação para RDM específico
    * @param rdm Objeto RDM a ser rejeitado
    */
   rejectRDM(rdm: RDM): void {
@@ -259,12 +303,12 @@ export class PendingRDMComponent implements OnInit {
   }
 
   /**
-   * Confirma e processa rejeição do RDM selecionado
-   * Valida motivo da rejeição antes de enviar para API
+   * Confirma e processa Reprovação do RDM selecionado
+   * Valida motivo da Reprovação antes de enviar para API
    */
   confirmReject(): void {
     if (!this.selectedRDM || !this.rejectionReason.trim()) {
-      this.snackBar.open('Informe o motivo da rejeição', 'Fechar', {
+      this.snackBar.open('Informe o motivo da reprovação', 'Fechar', {
         duration: 3000,
         panelClass: ['warning-snackbar'],
       });
@@ -273,7 +317,7 @@ export class PendingRDMComponent implements OnInit {
 
     this.isProcessing = true;
 
-    // Dados para rejeição
+    // Dados para Reprovação
     const rejectData = {
       status: 'Reprovado',
       subject: this.rejectionReason.trim(),
@@ -287,7 +331,7 @@ export class PendingRDMComponent implements OnInit {
         });
 
         this.closeModal();
-        this.loadPendingRDM(); // Recarrega lista após rejeição
+        this.loadPendingRDM(); // Recarrega lista após Reprovação
       },
       error: (error) => {
         const errorMessage = `Erro ao reprovar RDM ${this.selectedRDM!.ticket}`;
@@ -324,29 +368,6 @@ export class PendingRDMComponent implements OnInit {
     this.currentPage = page;
     this.loadPendingRDM();
     window.scrollTo(0, 0); // Melhora UX retornando ao topo
-  }
-
-  /**
-   * Calcula intervalo de páginas visíveis na navegação
-   * Mantém foco na página atual com máximo de 5 páginas
-   * @returns Array de números de páginas a exibir
-   */
-  get pages(): number[] {
-    const pages: number[] = [];
-    const maxVisible = 5;
-    let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(this.totalPages, start + maxVisible - 1);
-
-    // Ajusta início se intervalo for menor que máximo
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    // Preenche array com páginas
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-    return pages;
   }
 
   /**

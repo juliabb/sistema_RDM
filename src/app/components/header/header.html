@@ -1,10 +1,37 @@
 <header class="header">
   <div class="logo-link" (click)="navigateToHome()" [class.disabled]="!isLoggedIn">
-    <img src="img/logo-prodesp-branco.svg" alt="Prodesp RDM" class="logo">
+    <img src="img/shiftflow_branco.png" alt="logo ShiftFlow" class="logo">
   </div>
 
   @if (isLoggedIn) {
   <div class="header-title">Sistema requisição de mudança - RDM</div>
+  }
+
+  <!-- Botão switch de tema -->
+  <label class="theme-switch" [attr.aria-label]="'Alternar para tema ' + (isDark ? 'claro' : 'escuro')">
+    <input type="checkbox" [checked]="isDark" (change)="toggleTheme()" />
+    <span class="slider">
+      <mat-icon class="icon-light">light_mode</mat-icon>
+      <mat-icon class="icon-dark">dark_mode</mat-icon>
+    </span>
+  </label>
+
+  <!-- Ícone de Notificações -->
+  @if (isLoggedIn) {
+  <div class="notification-container">
+    <button class="notification-icon" (click)="toggleNotifications($event)" [attr.aria-label]="'Notificações'">
+      <mat-icon>notifications</mat-icon>
+      @if (unreadNotificationsCount > 0) {
+      <span class="notification-badge">{{ unreadNotificationsCount }}</span>
+      }
+    </button>
+
+    @if (showNotifications) {
+    <app-notification-popup [isOpen]="showNotifications" (closed)="closeNotifications()"
+      (notificationRead)="onNotificationRead($event)">
+    </app-notification-popup>
+    }
+  </div>
   }
 
   @if (isLoggedIn) {
@@ -58,7 +85,7 @@
       <div class="dropdown-item" (click)="navigateToHome()">
         <mat-icon class="menu-icon">space_dashboard</mat-icon>
 
-        <span class="logout-text">Voltar ao Dashboard</span>
+        <span class="logout-text">Solicitar mudança</span>
       </div>
 
       @if (isUserAdmin) {
