@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { firstValueFrom, Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../../../services/auth-service';
 import { buildApiUrl, API_PATHS } from '../../../config/api.config';
 import { ValidationService } from './validation.service';
@@ -1186,25 +1186,11 @@ export class RdmFormComponent implements OnInit, OnDestroy {
     this.abortController = new AbortController();
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-        signal: this.abortController.signal,
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { message: errorText || `Erro HTTP ${response.status}` };
-        }
-        throw errorData;
-      }
-
-      const responseData = await response.json();
+      const responseData = await firstValueFrom(
+        this.http.post<any>(url, formData, {
+          headers: new HttpHeaders({ Authorization: `Bearer ${token}` }),
+        }),
+      );
       this.handleSuccessResponse(responseData);
     } catch (error: any) {
       if (error.name === 'AbortError') {

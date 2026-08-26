@@ -16,6 +16,15 @@ A aplicação permite que usuários registrem solicitações de mudança, acompa
 
 > Este projeto foi adaptado para fins de portfólio, utilizando identidade visual e dados fictícios.
 
+## Acesso demonstrativo
+
+O projeto possui uma API simulada no próprio navegador e pode ser publicado como site estático, sem backend. Use:
+
+- **E-mail:** `teste@teste.com`
+- **Senha:** `Password@123`
+
+A conta demonstrativa tem perfil de administrador. Os dados fictícios e as alterações feitas durante a navegação são mantidos no `localStorage` do navegador.
+
 ---
 
 ## 🧩 Funcionalidades
@@ -38,7 +47,7 @@ A aplicação permite que usuários registrem solicitações de mudança, acompa
 - Layout responsivo
 - Controle de acesso por perfil administrativo
 
-> ⚠️ Algumas funcionalidades dependem da API backend, que pode estar em processo de deploy ou integração.
+> O modo de demonstração intercepta as chamadas da aplicação e responde com dados fictícios locais.
 
 ---
 
