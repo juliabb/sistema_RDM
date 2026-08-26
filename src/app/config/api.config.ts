@@ -4,7 +4,6 @@ import { ApplicationConfig } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 
 // Constantes básicas
-// export const API_BASE_URL = 'https://apirdmhml.saude.sp.gov.br';
 export const API_BASE_URL = 'https://localhost:7277';
 
 export const appConfig: ApplicationConfig = {

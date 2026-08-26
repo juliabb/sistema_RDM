@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "RDMSaude-Front": {
+    "shiftflow-rdm": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -51,10 +51,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "RDMSaude-Front:build:production"
+              "buildTarget": "shiftflow-rdm:build:production"
             },
             "development": {
-              "buildTarget": "RDMSaude-Front:build:development"
+              "buildTarget": "shiftflow-rdm:build:development"
             }
           },
           "defaultConfiguration": "development"

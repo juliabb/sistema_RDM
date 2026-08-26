@@ -61,7 +61,7 @@ body {
 --background-pagination: #f1f5f9;
 --pagination-text: #020617;
 --stats-text: #006b86;
---logo-saude: white;
+--logo-system: white;
 --btn-secundary-hover-text: #f8fafc;
 --modal-title-color: #006b86;
 --error-dark-modal: #7f1d1d;
@@ -1073,7 +1073,7 @@ body {
 }
 
 /* Estilos para o header global */
-.logo-saude {
+.logo-system {
   transition: width 0.2s ease;
   width: 100%;
   max-width: 420px;

@@ -8,8 +8,7 @@ RUN npm run build
 FROM nginx:alpine
 RUN rm /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist/RDMSaude-Front/browser /usr/share/nginx/html
-COPY certificado /etc/nginx/certificado
-EXPOSE 443
+COPY --from=build /app/dist/shiftflow-rdm/browser /usr/share/nginx/html
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 

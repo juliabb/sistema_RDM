@@ -11,7 +11,7 @@ import { ThemeService } from './services/theme.service';
   styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('RDMSaude-Front');
+  protected readonly title = signal('ShiftFlow RDM');
   activeTab = signal('new-request');
 
   constructor(private themeService: ThemeService) {}

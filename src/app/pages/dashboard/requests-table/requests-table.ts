@@ -478,7 +478,7 @@ RequestsTableComponent.paginationCache.set(cacheKey, { ...pagination });
         }
 
         const blob = response.body as Blob;
-        let filename = `SES_CIC_FORM-${request.ticket}-${request.title}.pdf`;
+        let filename = `RDM_RELATORIO-${request.ticket}-${request.title}.pdf`;
         const contentDisposition = response.headers.get('Content-Disposition');
 
         if (contentDisposition) {
